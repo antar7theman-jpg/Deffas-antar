@@ -2028,16 +2028,16 @@ private fun LocalDatabaseBackupCard(
 
             // Disaster Recovery: AES-256 Encrypted Daily Auto-Backup Module
             Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = Color(0xFF10B981).copy(alpha = 0.09f),
-                border = BorderStroke(1.2.dp, Color(0xFF10B981).copy(alpha = 0.35f)),
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF10B981).copy(alpha = 0.08f),
+                border = BorderStroke(1.5.dp, Color(0xFF10B981).copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -2046,38 +2046,55 @@ private fun LocalDatabaseBackupCard(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = null,
-                                tint = Color(0xFF10B981),
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = "النسخ التلقائي المشفر (AES-256 GCM) • حماية الكوارث",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 13.sp,
-                                color = Color(0xFF10B981)
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Security,
+                                        contentDescription = null,
+                                        tint = Color(0xFF10B981),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "النسخ التلقائي المشفر (AES-256 GCM)",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.5.sp,
+                                    color = Color(0xFF10B981)
+                                );
+                                Text(
+                                    text = "حماية فائقة ضد الكوارث وتلف البيانات",
+                                    fontSize = 10.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                         Surface(
                             shape = RoundedCornerShape(50),
-                            color = Color(0xFF10B981).copy(alpha = 0.18f)
+                            color = Color(0xFF10B981).copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f))
                         ) {
                             Text(
-                                text = "حفظ 7 أيام تلقائياً ✓",
+                                text = "حفظ 7 أيام ✓",
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF10B981),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
                             )
                         }
                     }
 
                     Text(
                         text = "يتم أخذ نسخة احتياطية يومية مشفرة بالكامل في مجلد محلي مخفي ومحمي ضد التلف بـ Checksum SHA-256 مع تنظيف ذاتي للنسخ الأقدم من 7 أيام.",
-                        fontSize = 11.sp,
+                        fontSize = 11.5.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
@@ -2090,25 +2107,25 @@ private fun LocalDatabaseBackupCard(
                             enabled = !isBusy,
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                             modifier = Modifier
                                 .weight(1f)
-                                .height(40.dp)
+                                .height(42.dp)
                                 .testTag("create_encrypted_snapshot_btn")
                         ) {
                             Icon(imageVector = Icons.Default.Security, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("نسخ مشفر فوري الآن", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("نسخ مشفر فوري", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
 
                         OutlinedButton(
                             onClick = onImportEncryptedSnapshotFromFile,
                             enabled = !isBusy,
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                             modifier = Modifier
                                 .weight(1f)
-                                .height(40.dp)
+                                .height(42.dp)
                                 .testTag("import_encrypted_snapshot_btn")
                         ) {
                             Icon(imageVector = Icons.Default.FileOpen, contentDescription = null, modifier = Modifier.size(16.dp))

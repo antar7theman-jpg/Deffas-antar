@@ -471,7 +471,8 @@ fun AFStoreMainApp(
                         )
                         NavigationBar(
                             containerColor = MaterialTheme.colorScheme.surface,
-                            tonalElevation = NavigationBarDefaults.Elevation
+                            tonalElevation = NavigationBarDefaults.Elevation,
+                            modifier = Modifier.height(64.dp)
                         ) {
                             bottomBarTabs.forEach { tab ->
                                 val isSelectedTab = selectedTab == tab
@@ -483,44 +484,35 @@ fun AFStoreMainApp(
                                         selectedTab = tab
                                     },
                                     icon = {
-                                        Surface(
-                                            shape = RoundedCornerShape(10.dp),
-                                            color = if (isSelectedTab) {
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                                            } else {
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (semanticColors.isDark) 0.45f else 0.75f)
-                                            },
-                                            border = BorderStroke(
-                                                width = if (isSelectedTab) 1.3.dp else 1.dp,
-                                                color = if (isSelectedTab) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else {
-                                                    MaterialTheme.colorScheme.outlineVariant
-                                                }
-                                            ),
-                                             modifier = Modifier.offset(y = (-9).dp)
-                                        ) {
-                                            Box(
-                                                contentAlignment = Alignment.Center,
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = tab.icon,
-                                                    contentDescription = tab.labelAr,
-                                                    modifier = Modifier.size(bottomNavIconSize)
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .size(if (isSelectedTab) 36.dp else 32.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(
+                                                    if (isSelectedTab) {
+                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                                                    } else {
+                                                        Color.Transparent
+                                                    }
                                                 )
-                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = tab.icon,
+                                                contentDescription = tab.labelAr,
+                                                tint = if (isSelectedTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(if (isCompactScreen) 20.dp else 22.dp)
+                                            )
                                         }
                                     },
                                     label = {
                                         Text(
                                             text = tab.labelAr,
-                                            fontSize = if (isCompactScreen) 10.sp else 11.sp,
-                                            fontWeight = if (isSelectedTab) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                            fontSize = if (isCompactScreen) 9.5.sp else 10.5.sp,
+                                            fontWeight = if (isSelectedTab) FontWeight.Bold else FontWeight.Medium,
                                             maxLines = 1,
                                             softWrap = false,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.offset(y = (-6).dp)
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     },
                                     colors = NavigationBarItemDefaults.colors(
