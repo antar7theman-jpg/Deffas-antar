@@ -1,0 +1,5498 @@
+package com.example.ui.components
+
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.mutableIntStateOf
+
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import com.example.data.datastore.UserSessionDataStore
+import com.example.data.datastore.SavedUserCredentials
+import android.util.Log
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.HowToReg
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockPerson
+import androidx.compose.material.icons.filled.ManageAccounts
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.AFStoreHeaderLogo
+import com.example.R
+import com.example.data.firebase.BackgroundStaffSyncService
+import com.example.data.firebase.StaffAccount
+import com.example.data.firebase.StaffAccountRepository
+import com.example.data.firebase.StaffApprovalStatus
+import com.example.data.models.WorkerPermissions
+import com.example.ui.theme.LocalAFStoreSemanticColors
+import com.example.utils.NetworkConnectivityMonitor
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+import com.google.firebase.Firebase
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.auth
+import java.text.SimpleDateFormat
+import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+
+private fun Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}
+
+internal fun FirebaseAuth.authStateFlow(): Flow<FirebaseUser?> = callbackFlow {
+    val listener = FirebaseAuth.AuthStateListener { auth ->
+        trySend(auth.currentUser)
+    }
+    addAuthStateListener(listener)
+    awaitClose { removeAuthStateListener(listener) }
+}
+
+// 1. Silent Auto-Sign-In on App Startup (One option per GetCredentialRequest)
+fun attemptAutoSignIn(
+    context: Context,
+    credentialManager: CredentialManager,
+    onAuthSuccess: () -> Unit,
+    onUnauthenticated: () -> Unit,
+    scope: CoroutineScope
+) {
+    if (Firebase.auth.currentUser != null) {
+        onAuthSuccess()
+        return
+    }
+    val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+    val clientId = if (resId != 0) {
+        try { context.getString(resId) } catch (e: Exception) { "" }
+    } else {
+        ""
+    }
+    if (clientId.isBlank()) {
+        onUnauthenticated()
+        return
+    }
+
+    val googleIdOption = GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(true)
+        .setServerClientId(clientId)
+        .setAutoSelectEnabled(true)
+        .build()
+
+    val request = GetCredentialRequest.Builder()
+        .addCredentialOption(googleIdOption)
+        .build()
+
+    val activityContext = context.findActivity() ?: context
+    scope.launch {
+        try {
+            val result = credentialManager.getCredential(activityContext, request)
+            val credential = result.credential
+            if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                val authCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
+                Firebase.auth.signInWithCredential(authCredential).await()
+                onAuthSuccess()
+            } else {
+                onUnauthenticated()
+            }
+        } catch (e: Exception) {
+            onUnauthenticated()
+        }
+    }
+}
+
+// 2. Interactive Google Sign-In via Credential Manager (One option per GetCredentialRequest)
+fun onGoogleSignInClicked(
+    context: Context,
+    credentialManager: CredentialManager,
+    onAuthSuccess: () -> Unit,
+    onAuthError: (String) -> Unit,
+    scope: CoroutineScope,
+    onAuthCancelled: () -> Unit = {}
+) {
+    val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+    val clientId = if (resId != 0) {
+        try { context.getString(resId) } catch (e: Exception) { "" }
+    } else {
+        ""
+    }
+    if (clientId.isBlank()) {
+        onAuthError("إعداد Google Sign-In غير مكتمل: لم يتم العثور على default_web_client_id")
+        return
+    }
+
+    val signInOption = GetSignInWithGoogleOption.Builder(serverClientId = clientId).build()
+    val request = GetCredentialRequest.Builder()
+        .addCredentialOption(signInOption)
+        .build()
+
+    val activity = context.findActivity()
+    if (activity == null) {
+        onAuthError("تعذر فتح نافذة تسجيل الدخول بحساب Google")
+        return
+    }
+
+    scope.launch {
+        try {
+            val result = credentialManager.getCredential(activity, request)
+            val credential = result.credential
+            if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                val authCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
+                Firebase.auth.signInWithCredential(authCredential).await()
+                onAuthSuccess()
+            } else {
+                onAuthError("نوع بيانات الاعتماد غير متوقع")
+            }
+        } catch (e: GetCredentialCancellationException) {
+            Log.w("Auth", "Google Sign-In cancelled or dismissed: ${e.message}", e)
+            onAuthCancelled()
+        } catch (e: Exception) {
+            Log.e("Auth", "Google Sign-In failed", e)
+            onAuthError(e.localizedMessage ?: "تعذر تسجيل الدخول بحساب Google")
+        }
+    }
+}
+
+// 3. Sign-Out Flow (Must sign out of Firebase AND clear Credential Manager state)
+fun signOutFromFirebase(
+    context: Context,
+    credentialManager: CredentialManager,
+    onSignOutComplete: () -> Unit,
+    scope: CoroutineScope
+) {
+    Firebase.auth.signOut()
+    scope.launch {
+        try {
+            credentialManager.clearCredentialState(ClearCredentialStateRequest())
+        } catch (e: Exception) {
+            Log.e("Auth", "Failed to clear credential state", e)
+        } finally {
+            onSignOutComplete()
+        }
+    }
+}
+
+@Composable
+fun GoogleSignInButton(
+    onAuthSuccess: () -> Unit,
+    onAuthError: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val credentialManager = remember(context) { CredentialManager.create(context) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    Button(
+        onClick = {
+            isLoading = true
+            onGoogleSignInClicked(
+                context = context,
+                credentialManager = credentialManager,
+                onAuthSuccess = {
+                    isLoading = false
+                    onAuthSuccess()
+                },
+                onAuthError = { errorMsg ->
+                    isLoading = false
+                    onAuthError(errorMsg)
+                },
+                scope = coroutineScope,
+                onAuthCancelled = { isLoading = false }
+            )
+        },
+        enabled = !isLoading,
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .testTag("google_sign_in_button")
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(22.dp),
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.5.dp
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text("جاري التحقق من حساب Google...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        } else {
+            Icon(
+                imageVector = Icons.Default.VerifiedUser,
+                contentDescription = "Sign in with Google",
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "تسجيل الدخول بحساب Google (Sign in with Google)",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun FirebaseAuthAndApprovalGate(
+    storeName: String,
+    onApprovedAccountReady: (StaffAccount) -> Unit,
+    onOwnerCreatedManager: (StaffAccount, String) -> Unit = { _, _ -> },
+    approvedContent: @Composable (
+        myAccount: StaffAccount,
+        allStaffAccounts: List<StaffAccount>,
+        pendingCount: Int,
+        onOpenStaffManagement: () -> Unit,
+        onSignOut: () -> Unit
+    ) -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val prefs = remember(context) { context.getSharedPreferences("af_store_prefs", Context.MODE_PRIVATE) }
+    val credentialManager = remember(context) { CredentialManager.create(context) }
+    val auth = remember { Firebase.auth }
+    val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
+    val userSessionDataStore = remember(context) { UserSessionDataStore(context.applicationContext) }
+    val savedDataStoreCreds by userSessionDataStore.savedCredentialsFlow.collectAsStateWithLifecycle(initialValue = null)
+
+    var savedPersistentAccount by remember {
+        mutableStateOf(StaffAccountRepository.loadPersistentStaffSession(context))
+    }
+    var isDirectOwnerSessionActive by rememberSaveable {
+        mutableStateOf(
+            prefs.getBoolean("owner_direct_session_active", false) ||
+                StaffAccountRepository.isDirectOwnerSessionSaved(context)
+        )
+    }
+    var keepSessionOpen by rememberSaveable {
+        mutableStateOf(StaffAccountRepository.isKeepSessionOpenPreferred(context))
+    }
+    var authErrorMessage by remember { mutableStateOf<String?>(null) }
+    var authSuccessBanner by remember { mutableStateOf<String?>(null) }
+    var attemptedSilentSignIn by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(savedDataStoreCreds) {
+        val creds = savedDataStoreCreds
+        if (creds != null && creds.isSessionActive && creds.rememberMe && savedPersistentAccount == null && !isDirectOwnerSessionActive) {
+            val registry = StaffAccountRepository.loadLocalAccountsRegistry(context)
+            val matched = registry.firstOrNull { acc ->
+                (creds.userId.isNotBlank() && acc.userId == creds.userId) ||
+                    (creds.identifier.isNotBlank() && (acc.email.equals(creds.identifier, ignoreCase = true) || acc.fullName.equals(creds.identifier, ignoreCase = true)))
+            } ?: if (creds.isDirectOwner || StaffAccountRepository.isOwnerIdentity(creds.identifier)) {
+                StaffAccount.createVerifiedOwnerAccount()
+            } else null
+
+            if (matched != null) {
+                savedPersistentAccount = matched
+                if (matched.isOwner) {
+                    isDirectOwnerSessionActive = true
+                }
+            }
+        }
+    }
+
+    val handleManualSignOut: () -> Unit = {
+        prefs.edit().putBoolean("owner_direct_session_active", false).apply()
+        StaffAccountRepository.clearPersistentStaffSession(context)
+        savedPersistentAccount = null
+        isDirectOwnerSessionActive = false
+        signOutFromFirebase(
+            context = context,
+            credentialManager = credentialManager,
+            onSignOutComplete = {},
+            scope = scope
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        if (!attemptedSilentSignIn &&
+            auth.currentUser == null &&
+            !isDirectOwnerSessionActive &&
+            savedPersistentAccount == null
+        ) {
+            attemptedSilentSignIn = true
+            attemptAutoSignIn(
+                context = context,
+                credentialManager = credentialManager,
+                onAuthSuccess = { authErrorMessage = null },
+                onUnauthenticated = {},
+                scope = scope
+            )
+        }
+    }
+
+    val activeFirebaseUser = currentUser
+    val cachedApprovedAccount = savedPersistentAccount?.takeIf { it.isApproved }
+
+    when {
+        activeFirebaseUser != null -> {
+            AuthenticatedStaffSessionGate(
+                firebaseUser = activeFirebaseUser,
+                initialCachedAccount = cachedApprovedAccount,
+                storeName = storeName,
+                onApprovedAccountReady = { approvedAcc ->
+                    StaffAccountRepository.saveAccountToLocalRegistry(context, approvedAcc)
+                    if (keepSessionOpen) {
+                        StaffAccountRepository.savePersistentStaffSession(
+                            context = context,
+                            account = approvedAcc,
+                            isDirectOwnerSession = false
+                        )
+                        savedPersistentAccount = approvedAcc
+                    }
+                    onApprovedAccountReady(approvedAcc)
+                },
+                onOwnerCreatedManager = onOwnerCreatedManager,
+                onSignOut = handleManualSignOut,
+                approvedContent = approvedContent
+            )
+        }
+
+        isDirectOwnerSessionActive -> {
+            DirectVerifiedOwnerSessionGate(
+                onApprovedAccountReady = { ownerAcc ->
+                    if (keepSessionOpen) {
+                        StaffAccountRepository.savePersistentStaffSession(
+                            context = context,
+                            account = ownerAcc,
+                            isDirectOwnerSession = true
+                        )
+                        savedPersistentAccount = ownerAcc
+                    }
+                    onApprovedAccountReady(ownerAcc)
+                },
+                onOwnerCreatedManager = onOwnerCreatedManager,
+                onSignOut = handleManualSignOut,
+                approvedContent = approvedContent
+            )
+        }
+
+        cachedApprovedAccount != null -> {
+            SavedPersistentStaffSessionGate(
+                savedAccount = cachedApprovedAccount,
+                onApprovedAccountReady = onApprovedAccountReady,
+                onOwnerCreatedManager = onOwnerCreatedManager,
+                onSignOut = handleManualSignOut,
+                approvedContent = approvedContent
+            )
+        }
+
+        else -> {
+            FirebaseStaffSignInScreen(
+                storeName = storeName,
+                keepSessionOpen = keepSessionOpen,
+                onKeepSessionOpenChange = { enabled ->
+                    keepSessionOpen = enabled
+                    StaffAccountRepository.setKeepSessionOpenPreferred(context, enabled)
+                },
+                errorMessage = authErrorMessage,
+                successBanner = authSuccessBanner,
+                onClearError = {
+                    authErrorMessage = null
+                    authSuccessBanner = null
+                },
+                onAuthSuccess = { authErrorMessage = null },
+                onAuthError = { err -> authErrorMessage = err },
+                onDirectStaffVerified = { verifiedAccount, identifier, secret ->
+                    StaffAccountRepository.saveAccountToLocalRegistry(context, verifiedAccount)
+                    authErrorMessage = null
+                    authSuccessBanner = null
+                    if (verifiedAccount.isOwner) {
+                        if (keepSessionOpen) {
+                            prefs.edit().putBoolean("owner_direct_session_active", true).apply()
+                            StaffAccountRepository.savePersistentStaffSession(
+                                context = context,
+                                account = verifiedAccount,
+                                isDirectOwnerSession = true,
+                                savedIdentifier = identifier,
+                                savedSecret = secret
+                            )
+                        }
+                        savedPersistentAccount = verifiedAccount
+                        isDirectOwnerSessionActive = true
+                    } else {
+                        if (keepSessionOpen) {
+                            StaffAccountRepository.savePersistentStaffSession(
+                                context = context,
+                                account = verifiedAccount,
+                                isDirectOwnerSession = false,
+                                savedIdentifier = identifier,
+                                savedSecret = secret
+                            )
+                        }
+                        savedPersistentAccount = verifiedAccount
+                    }
+                },
+                onRegisterIndependentManager = { createdManager, pin ->
+                    if (createdManager.isApproved) {
+                        onOwnerCreatedManager(createdManager, pin)
+                        if (keepSessionOpen) {
+                            StaffAccountRepository.savePersistentStaffSession(
+                                context = context,
+                                account = createdManager,
+                                isDirectOwnerSession = false
+                            )
+                        }
+                        savedPersistentAccount = createdManager
+                    } else {
+                        authSuccessBanner = "تم تسجيل ملف المدير المستقل «${createdManager.fullName}» (${createdManager.branchName}) وبانتظار موافقة وتفعيل المالك Deffas antar ✓"
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SavedPersistentStaffSessionGate(
+    savedAccount: StaffAccount,
+    onApprovedAccountReady: (StaffAccount) -> Unit,
+    onOwnerCreatedManager: (StaffAccount, String) -> Unit,
+    onSignOut: () -> Unit,
+    approvedContent: @Composable (
+        myAccount: StaffAccount,
+        allStaffAccounts: List<StaffAccount>,
+        pendingCount: Int,
+        onOpenStaffManagement: () -> Unit,
+        onSignOut: () -> Unit
+    ) -> Unit
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val semantic = LocalAFStoreSemanticColors.current
+    val repository = remember(context) { StaffAccountRepository(context.applicationContext) }
+    val syncService = remember(context, coroutineScope) {
+        BackgroundStaffSyncService(context.applicationContext, coroutineScope)
+    }
+    var concurrentTerminatedDeviceName by rememberSaveable { mutableStateOf<String?>(null) }
+    var showConcurrentLoginDialog by rememberSaveable { mutableStateOf(false) }
+
+    var registrySnapshot by remember(savedAccount.userId) {
+        mutableStateOf(StaffAccountRepository.loadLocalAccountsRegistry(context))
+    }
+    var cloudStaffAccounts by remember { mutableStateOf<List<StaffAccount>>(emptyList()) }
+    var showStaffManagementModal by rememberSaveable { mutableStateOf(false) }
+
+    val refreshLocalRegistry: () -> Unit = {
+        registrySnapshot = StaffAccountRepository.loadLocalAccountsRegistry(context)
+    }
+
+    LaunchedEffect(savedAccount) {
+        onApprovedAccountReady(savedAccount)
+    }
+
+    LaunchedEffect(savedAccount.isOwner) {
+        if (savedAccount.isOwner) {
+            try {
+                repository.observeAllStoreStaffAccounts()
+                    .catch { e -> Log.w("StaffAuthGate", "Error observing store staff accounts", e) }
+                    .collect { list ->
+                        cloudStaffAccounts = list
+                        list.forEach { remote ->
+                            StaffAccountRepository.saveAccountToLocalRegistry(context, remote)
+                        }
+                        registrySnapshot = StaffAccountRepository.loadLocalAccountsRegistry(context)
+                    }
+            } catch (e: Throwable) {
+                Log.w("StaffAuthGate", "Error in observeAllStoreStaffAccounts for owner: ${e.message}")
+            }
+        }
+    }
+
+    DisposableEffect(savedAccount.userId, savedAccount.email, savedAccount.isOwner) {
+        syncService.startSync(savedAccount) { event ->
+            when (event) {
+                is BackgroundStaffSyncService.SyncEvent.ConcurrentLoginDetected -> {
+                    concurrentTerminatedDeviceName = event.newDeviceName
+                    showConcurrentLoginDialog = true
+                }
+                is BackgroundStaffSyncService.SyncEvent.AccountDeactivated -> {
+                    onSignOut()
+                }
+                is BackgroundStaffSyncService.SyncEvent.ServerAuthorizationChanged -> {
+                    StaffAccountRepository.saveAccountToLocalRegistry(context, event.updatedAccount)
+                    refreshLocalRegistry()
+                    onApprovedAccountReady(event.updatedAccount)
+                }
+                is BackgroundStaffSyncService.SyncEvent.Synchronized -> {
+                    StaffAccountRepository.saveAccountToLocalRegistry(context, event.account)
+                    refreshLocalRegistry()
+                    onApprovedAccountReady(event.account)
+                }
+            }
+        }
+        onDispose {
+            syncService.stopSync()
+        }
+    }
+
+    val visibleAccounts = remember(registrySnapshot, cloudStaffAccounts, savedAccount) {
+        val merged = linkedMapOf<String, StaffAccount>()
+        registrySnapshot.forEach { acc ->
+            val key = acc.email.lowercase().ifBlank { acc.userId }
+            merged[key] = acc
+        }
+        cloudStaffAccounts.forEach { acc ->
+            val key = acc.email.lowercase().ifBlank { acc.userId }
+            val existing = merged[key]
+            merged[key] = if (existing != null && acc.secretPin.isBlank()) {
+                acc.copy(secretPin = existing.secretPin)
+            } else {
+                acc
+            }
+        }
+        val allList = merged.values.toList()
+        when {
+            savedAccount.isOwner -> allList
+            savedAccount.isRegularManager -> allList.filter {
+                it.userId == savedAccount.userId || it.isAffiliatedWithManager(savedAccount)
+            }
+            else -> listOf(savedAccount)
+        }
+    }
+
+    val pendingCount = visibleAccounts.count { it.approvalStatus == StaffApprovalStatus.PENDING }
+
+    approvedContent(
+        savedAccount,
+        visibleAccounts,
+        pendingCount,
+        {
+            refreshLocalRegistry()
+            showStaffManagementModal = true
+        },
+        onSignOut
+    )
+
+    if (showStaffManagementModal) {
+        StaffAccountsManagementModal(
+            myAccount = savedAccount,
+            allAccounts = visibleAccounts,
+            repository = repository,
+            onOwnerCreatedManager = { newAcc, pin ->
+                StaffAccountRepository.saveAccountToLocalRegistry(context, newAcc)
+                refreshLocalRegistry()
+                onOwnerCreatedManager(newAcc, pin)
+            },
+            onLocalRegistryUpdated = refreshLocalRegistry,
+            onDismiss = { showStaffManagementModal = false },
+            onSignOut = {
+                showStaffManagementModal = false
+                onSignOut()
+            }
+        )
+    }
+
+    if (showConcurrentLoginDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showConcurrentLoginDialog = false
+                onSignOut()
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.WarningAmber,
+                    contentDescription = null,
+                    tint = semantic.dangerRed,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "تم إنهاء الجلسة • تسجيل دخول متزامن",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Center,
+                    color = semantic.dangerRed
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "تم تسجيل الدخول إلى حساب «${savedAccount.fullName}» من هاتف آخر (${concurrentTerminatedDeviceName ?: "جهاز آخر"}).",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "وفقاً لسياسة الأمان ومنع تسجيل الدخول المتزامن، تم إنهاء هذه الجلسة تلقائياً وإعطاء الأولوية للجهاز الأحدث.\n\nيمكنك إعادة تسجيل الدخول في أي وقت لنقل الجلسة واستئناف العمل من هذا الجهاز.",
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConcurrentLoginDialog = false
+                        onSignOut()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = semantic.dangerRed),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("العودة لشاشة الدخول", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun DirectVerifiedOwnerSessionGate(
+    onApprovedAccountReady: (StaffAccount) -> Unit,
+    onOwnerCreatedManager: (StaffAccount, String) -> Unit,
+    onSignOut: () -> Unit,
+    approvedContent: @Composable (
+        myAccount: StaffAccount,
+        allStaffAccounts: List<StaffAccount>,
+        pendingCount: Int,
+        onOpenStaffManagement: () -> Unit,
+        onSignOut: () -> Unit
+    ) -> Unit
+) {
+    val context = LocalContext.current
+    val repository = remember(context) { StaffAccountRepository(context.applicationContext) }
+    val ownerAccount = remember { StaffAccount.createVerifiedOwnerAccount() }
+    var registrySnapshot by remember {
+        mutableStateOf(StaffAccountRepository.loadLocalAccountsRegistry(context))
+    }
+    var cloudStaffAccounts by remember { mutableStateOf<List<StaffAccount>>(emptyList()) }
+    var showStaffManagementModal by rememberSaveable { mutableStateOf(false) }
+
+    val refreshLocalRegistry: () -> Unit = {
+        registrySnapshot = StaffAccountRepository.loadLocalAccountsRegistry(context)
+    }
+
+    LaunchedEffect(ownerAccount) {
+        StaffAccountRepository.saveAccountToLocalRegistry(context, ownerAccount)
+        refreshLocalRegistry()
+        onApprovedAccountReady(ownerAccount)
+    }
+
+    LaunchedEffect(Unit) {
+        try {
+            repository.observeAllStoreStaffAccounts()
+                .catch { e -> Log.w("StaffAuthGate", "Error observing store staff accounts", e) }
+                .collect { list ->
+                    cloudStaffAccounts = list
+                    list.forEach { remote ->
+                        StaffAccountRepository.saveAccountToLocalRegistry(context, remote)
+                    }
+                    registrySnapshot = StaffAccountRepository.loadLocalAccountsRegistry(context)
+                }
+        } catch (e: Throwable) {
+            Log.w("StaffAuthGate", "Error in observeAllStoreStaffAccounts collection: ${e.message}")
+        }
+    }
+
+    val mergedAccounts = remember(registrySnapshot, cloudStaffAccounts) {
+        val merged = linkedMapOf<String, StaffAccount>()
+        registrySnapshot.forEach { acc ->
+            val key = acc.email.lowercase().ifBlank { acc.userId }
+            merged[key] = acc
+        }
+        cloudStaffAccounts.forEach { acc ->
+            val key = acc.email.lowercase().ifBlank { acc.userId }
+            val existing = merged[key]
+            merged[key] = if (existing != null && acc.secretPin.isBlank()) {
+                acc.copy(secretPin = existing.secretPin)
+            } else {
+                acc
+            }
+        }
+        merged.values.toList()
+    }
+
+    val pendingCount = mergedAccounts.count { it.approvalStatus == StaffApprovalStatus.PENDING }
+
+    approvedContent(
+        ownerAccount,
+        mergedAccounts,
+        pendingCount,
+        {
+            refreshLocalRegistry()
+            showStaffManagementModal = true
+        },
+        onSignOut
+    )
+
+    if (showStaffManagementModal) {
+        StaffAccountsManagementModal(
+            myAccount = ownerAccount,
+            allAccounts = mergedAccounts,
+            repository = repository,
+            onOwnerCreatedManager = { newMgr, pin ->
+                StaffAccountRepository.saveAccountToLocalRegistry(context, newMgr)
+                refreshLocalRegistry()
+                onOwnerCreatedManager(newMgr, pin)
+            },
+            onLocalRegistryUpdated = refreshLocalRegistry,
+            onDismiss = { showStaffManagementModal = false },
+            onSignOut = {
+                showStaffManagementModal = false
+                onSignOut()
+            }
+        )
+    }
+}
+
+@Composable
+private fun FirebaseStaffSignInScreen(
+    storeName: String,
+    keepSessionOpen: Boolean,
+    onKeepSessionOpenChange: (Boolean) -> Unit,
+    errorMessage: String?,
+    successBanner: String? = null,
+    onClearError: () -> Unit,
+    onAuthSuccess: () -> Unit,
+    onAuthError: (String) -> Unit,
+    onDirectStaffVerified: (StaffAccount, String, String) -> Unit,
+    onRegisterIndependentManager: (StaffAccount, String) -> Unit
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val semantic = LocalAFStoreSemanticColors.current
+    val networkMonitor = remember { NetworkConnectivityMonitor(context) }
+    val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle()
+
+    var loginIdentifierInput by rememberSaveable { mutableStateOf(StaffAccountRepository.OWNER_DISPLAY_EMAIL) }
+    var loginSecretInput by rememberSaveable { mutableStateOf("") }
+    var showSecretPassword by rememberSaveable { mutableStateOf(false) }
+    var showRegisterManagerDialog by rememberSaveable { mutableStateOf(false) }
+    var showLoginFieldsInfoDialog by rememberSaveable { mutableStateOf(false) }
+    var isDirectAuthenticating by remember { mutableStateOf(false) }
+    var terminatedSessionNotice by remember {
+        mutableStateOf(StaffAccountRepository.getAndClearTerminatedSessionReason(context))
+    }
+
+    val isEnteredEmailOwner = remember(loginIdentifierInput) {
+        StaffAccountRepository.isOwnerEmail(loginIdentifierInput)
+    }
+
+    Scaffold(
+        contentWindowInsets = WindowInsets.systemBars,
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = semantic.cardElevated),
+                border = BorderStroke(1.2.dp, semantic.cardBorder),
+                elevation = CardDefaults.cardElevation(defaultElevation = if (semantic.isDark) 0.dp else 6.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 540.dp)
+                    .testTag("firebase_sign_in_card")
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 1. Elegant Top Connectivity Status Strip
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isOnline) {
+                            semantic.profitContainer.copy(alpha = 0.55f)
+                        } else {
+                            semantic.debtContainer.copy(alpha = 0.85f)
+                        },
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (isOnline) semantic.profitGreen.copy(alpha = 0.5f) else semantic.debtAmber.copy(alpha = 0.65f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("network_connectivity_status_strip")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isOnline) semantic.profitGreen else semantic.debtAmber)
+                                )
+                                Icon(
+                                    imageVector = if (isOnline) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                                    contentDescription = null,
+                                    tint = if (isOnline) semantic.profitGreen else semantic.debtAmber,
+                                    modifier = Modifier.size(19.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = if (isOnline) "حالة الاتصال: متصل بالإنترنت" else "حالة الاتصال: غير متصل (Offline)",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 12.sp,
+                                        color = if (isOnline) semantic.profitGreen else semantic.debtAmber
+                                    )
+                                    Text(
+                                        text = if (isOnline) {
+                                            "المزامنة السحابية فورية ومفعلة مع خوادم Firebase"
+                                        } else {
+                                            "يعمل التطبيق استناداً للبيانات المخزنة محلياً على هذا الجهاز"
+                                        },
+                                        fontSize = 10.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isOnline) semantic.profitGreen.copy(alpha = 0.18f) else semantic.debtAmber.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = if (isOnline) "نشط سحابياً ✓" else "محلي فقط ⚡",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (isOnline) semantic.profitGreen else semantic.debtAmber,
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // 2. Explanatory Notice Card for Offline Manager Login
+                    AnimatedVisibility(visible = !isOnline) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = semantic.debtContainer.copy(alpha = 0.9f),
+                            border = BorderStroke(1.2.dp, semantic.debtAmber.copy(alpha = 0.7f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("offline_manager_notice_card")
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = semantic.debtAmber.copy(alpha = 0.22f),
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.CloudOff,
+                                                contentDescription = "دون اتصال",
+                                                tint = semantic.debtAmber,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "تنبيه تسجيل الدخول دون اتصال (وضع Offline)",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 13.sp,
+                                            color = semantic.debtAmber
+                                        )
+                                        Text(
+                                            text = "إشعار هام لمديري الفروع والمسؤولين",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = "أنت الآن في وضع عدم الاتصال بالشبكة. سيتم منح حق الدخول للمدير بالاعتماد كلياً على البيانات والصلاحيات المحفوظة محلياً على هذا الجهاز، مما يضمن استمرارية البيع والعمل دون انقطاع.",
+                                    fontSize = 11.5.sp,
+                                    lineHeight = 17.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                    border = BorderStroke(0.8.dp, semantic.debtAmber.copy(alpha = 0.4f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = semantic.debtAmber,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "ستتم المزامنة السحابية لكافة العمليات وإعادة التحقق التلقائي فور توفر اتصال بالإنترنت.",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    AFStoreHeaderLogo(isActive = true, badgeSize = 58.dp)
+
+                    AnimatedVisibility(visible = terminatedSessionNotice != null) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = semantic.dangerContainer.copy(alpha = 0.85f),
+                            border = BorderStroke(1.2.dp, semantic.dangerRed.copy(alpha = 0.6f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("concurrent_login_terminated_notice_banner")
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.WarningAmber,
+                                    contentDescription = null,
+                                    tint = semantic.dangerRed,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "تنبيه أمان: تسجيل دخول متزامن",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 12.5.sp,
+                                        color = semantic.dangerRed
+                                    )
+                                    Text(
+                                        text = terminatedSessionNotice.orEmpty(),
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                IconButton(onClick = { terminatedSessionNotice = null }, modifier = Modifier.size(28.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "إغلاق",
+                                        tint = semantic.dangerRed,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = storeName,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 22.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Remember Me & Keep Session Open (DataStore)
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (keepSessionOpen) {
+                            semantic.profitGreen.copy(alpha = 0.14f)
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        border = BorderStroke(
+                            width = 1.2.dp,
+                            color = if (keepSessionOpen) semantic.profitGreen.copy(alpha = 0.65f) else MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onKeepSessionOpenChange(!keepSessionOpen) }
+                            .testTag("keep_session_open_toggle_card")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (keepSessionOpen) Icons.Default.Security else Icons.Default.LockPerson,
+                                    contentDescription = null,
+                                    tint = if (keepSessionOpen) semantic.profitGreen else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "تذكرني (Remember Me) • بقاء الجلسة مفتوحة دائماً",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 12.5.sp,
+                                        color = if (keepSessionOpen) semantic.profitGreen else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "حفظ بيانات الاعتماد بـ DataStore لمنع تسجيل الخروج والدخول المباشر للتطبيق",
+                                        fontSize = 10.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = keepSessionOpen,
+                                onCheckedChange = onKeepSessionOpenChange,
+                                modifier = Modifier.testTag("keep_session_open_switch")
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = successBanner != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = semantic.profitGreen.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, semantic.profitGreen.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = successBanner.orEmpty(),
+                                    color = semantic.profitGreen,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = onClearError, modifier = Modifier.size(28.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "إغلاق",
+                                        tint = semantic.profitGreen,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    AnimatedVisibility(visible = errorMessage != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = semantic.dangerRed.copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, semantic.dangerRed.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = errorMessage.orEmpty(),
+                                    color = semantic.dangerRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = onClearError, modifier = Modifier.size(28.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "إغلاق",
+                                        tint = semantic.dangerRed,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 1. Primary Google Sign-In via Firebase Auth + Credential Manager
+                    GoogleSignInButton(
+                        onAuthSuccess = onAuthSuccess,
+                        onAuthError = onAuthError
+                    )
+
+                    // 2. Button to Create Independent Manager Profile from Login Screen
+                    OutlinedButton(
+                        onClick = { showRegisterManagerDialog = true },
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("open_register_independent_manager_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PersonAdd,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(19.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "إنشاء ملف مدير مستقل جديد (يدير عماله التابعين له)",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.5.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+
+                    // 3. Direct Login Card (Name or Email + Password / PIN)
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.38f),
+                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("owner_direct_login_section")
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Key,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = "تسجيل الدخول (بالاسم أو البريد الإلكتروني)",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "أدخل الاسم أو البريد مع الرقم السري",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    if (isEnteredEmailOwner) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = semantic.profitGreen.copy(alpha = 0.16f),
+                                            border = BorderStroke(1.dp, semantic.profitGreen.copy(alpha = 0.5f))
+                                        ) {
+                                            Text(
+                                                text = "المطور والمالك ✓",
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = semantic.profitGreen,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+
+                                    IconButton(
+                                        onClick = { showLoginFieldsInfoDialog = true },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = "شرح وتفصيل الخانات",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Interactive Guidance Hint Box
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "إيضاح: يمكنك تسجيل الدخول باسم المطور (Deffas antar) أو بالبريد (Antar7theman@gmail.com) مع الرقم السري (Antar19930716).",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 15.sp
+                                    )
+                                }
+                            }
+
+                            // Quick Fill Developer Credentials Shortcut
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        loginIdentifierInput = StaffAccountRepository.OWNER_FULL_NAME
+                                        loginSecretInput = StaffAccountRepository.OWNER_SECRET_CODE
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "⚡",
+                                            fontSize = 12.sp
+                                        )
+                                        Text(
+                                            text = "تعبئة سريعة لبيانات المطور (${StaffAccountRepository.OWNER_FULL_NAME})",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    Text(
+                                        text = "تعبئة تلقائية",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            // 1. Identifier Field (Name or Email) with Semantic Icons & Quick Clear
+                            OutlinedTextField(
+                                value = loginIdentifierInput,
+                                onValueChange = { loginIdentifierInput = it },
+                                label = { Text("الاسم أو البريد الإلكتروني") },
+                                placeholder = { Text("مثال: Deffas antar أو Antar7theman@gmail.com") },
+                                supportingText = {
+                                    Text(
+                                        text = "اكتب اسمك الكامل، اسم المستخدم، أو البريد الإلكتروني المعتمد في الحساب.",
+                                        fontSize = 10.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                leadingIcon = {
+                                    val idIcon = when {
+                                        isEnteredEmailOwner -> Icons.Default.AdminPanelSettings
+                                        loginIdentifierInput.contains("@") -> Icons.Default.Email
+                                        else -> Icons.Default.Person
+                                    }
+                                    Icon(
+                                        imageVector = idIcon,
+                                        contentDescription = "أيقونة نوع المعرف",
+                                        tint = if (isEnteredEmailOwner) semantic.profitGreen else MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (loginIdentifierInput.isNotEmpty()) {
+                                        IconButton(
+                                            onClick = { loginIdentifierInput = "" },
+                                            modifier = Modifier.testTag("clear_identifier_btn")
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "مسح اسم الحساب",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(19.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("owner_email_login_input")
+                            )
+
+                            // 2. Secret / Password Field with Key Icon, Quick Clear & Visibility Toggle
+                            OutlinedTextField(
+                                value = loginSecretInput,
+                                onValueChange = { loginSecretInput = it },
+                                label = { Text("الرقم السري / كلمة المرور") },
+                                placeholder = { Text("Antar19930716") },
+                                supportingText = {
+                                    Text(
+                                        text = "الرمز السري الخاص بالمطور (Antar19930716) أو رمز PIN للمدير / العامل.",
+                                        fontSize = 10.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Key,
+                                        contentDescription = "رمز الدخول السري",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
+                                trailingIcon = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    ) {
+                                        if (loginSecretInput.isNotEmpty()) {
+                                            IconButton(
+                                                onClick = { loginSecretInput = "" },
+                                                modifier = Modifier.testTag("clear_secret_btn")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "مسح الرمز السري",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(19.dp)
+                                                )
+                                            }
+                                        }
+                                        IconButton(
+                                            onClick = { showSecretPassword = !showSecretPassword },
+                                            modifier = Modifier.testTag("toggle_password_visibility_btn")
+                                        ) {
+                                            Icon(
+                                                imageVector = if (showSecretPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                contentDescription = if (showSecretPassword) "إخفاء الرمز السري" else "إظهار الرمز السري",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                visualTransformation = if (showSecretPassword) {
+                                    VisualTransformation.None
+                                } else {
+                                    PasswordVisualTransformation()
+                                },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("owner_secret_login_input")
+                            )
+
+                            // 3. Verification Progress Banner During Active Authentication
+                            AnimatedVisibility(visible = isDirectAuthenticating) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("login_verification_progress_banner")
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(18.dp),
+                                                    strokeWidth = 2.2.dp,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Text(
+                                                    text = "جاري فحص وتوثيق الصلاحيات عبر فايربيس...",
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            }
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = if (isOnline) semantic.profitGreen.copy(alpha = 0.2f) else semantic.debtAmber.copy(alpha = 0.2f)
+                                            ) {
+                                                Text(
+                                                    text = if (isOnline) "سحابي (Firestore)" else "محلي (Cache)",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isOnline) semantic.profitGreen else semantic.debtAmber,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+
+                                        LinearProgressIndicator(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(5.dp)
+                                                .clip(RoundedCornerShape(3.dp)),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                            strokeCap = StrokeCap.Round
+                                        )
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = "الحساب: $loginIdentifierInput",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = if (isEnteredEmailOwner) "رتبة: مالك رئيسي ✓" else "مطابقة الصلاحيات والتراخيص",
+                                                fontSize = 10.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Button(
+                                onClick = {
+                                    isDirectAuthenticating = true
+                                    coroutineScope.launch {
+                                        try {
+                                            val result = StaffAccountRepository.authenticateStaffLoginWithCloud(
+                                                context = context,
+                                                emailOrUsername = loginIdentifierInput,
+                                                secretPinOrCode = loginSecretInput
+                                            )
+                                            if (result.isSuccess) {
+                                                onDirectStaffVerified(result.getOrThrow(), loginIdentifierInput, loginSecretInput)
+                                            } else {
+                                                onAuthError(
+                                                    result.exceptionOrNull()?.localizedMessage
+                                                        ?: "بيانات الدخول غير صحيحة!"
+                                                )
+                                            }
+                                        } catch (e: Exception) {
+                                            onAuthError(e.localizedMessage ?: "حدث خطأ أثناء فحص الحساب سحابياً")
+                                        } finally {
+                                            isDirectAuthenticating = false
+                                        }
+                                    }
+                                },
+                                enabled = !isDirectAuthenticating,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isOnline) semantic.profitGreen else semantic.debtAmber,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .testTag("owner_direct_login_btn")
+                            ) {
+                                if (isDirectAuthenticating) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(19.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (isOnline) {
+                                            "جاري التحقق من بيانات الحساب سحابياً..."
+                                        } else {
+                                            "جاري التحقق والاعتماد على البيانات المحلية..."
+                                        },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.5.sp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = if (isEnteredEmailOwner) Icons.Default.AdminPanelSettings else if (isOnline) Icons.Default.CheckCircle else Icons.Default.CloudOff,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (isEnteredEmailOwner) {
+                                            "دخول المطور والمالك (Deffas antar)"
+                                        } else if (!isOnline) {
+                                            "دخول بالبيانات المحلية (Offline)"
+                                        } else {
+                                            "تسجيل الدخول"
+                                        },
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showLoginFieldsInfoDialog) {
+        LoginFieldsExplanationDialog(
+            onDismiss = { showLoginFieldsInfoDialog = false },
+            onQuickFillDeveloper = {
+                loginIdentifierInput = StaffAccountRepository.OWNER_FULL_NAME
+                loginSecretInput = StaffAccountRepository.OWNER_SECRET_CODE
+                showLoginFieldsInfoDialog = false
+            }
+        )
+    }
+
+    if (showRegisterManagerDialog) {
+        RegisterIndependentManagerFromLoginDialog(
+            onDismiss = { showRegisterManagerDialog = false },
+            onSubmit = { fullName, email, phone, branchName, managerPin, optionalOwnerSecret ->
+                coroutineScope.launch {
+                    val res = StaffAccountRepository.registerIndependentManagerWithCloudSync(
+                        context = context,
+                        fullName = fullName,
+                        email = email,
+                        phone = phone,
+                        branchName = branchName,
+                        managerSecretPin = managerPin,
+                        optionalOwnerSecretCode = optionalOwnerSecret
+                    )
+                    if (res.isSuccess) {
+                        val created = res.getOrThrow()
+                        showRegisterManagerDialog = false
+                        onRegisterIndependentManager(created, managerPin)
+                    } else {
+                        onAuthError(res.exceptionOrNull()?.localizedMessage ?: "تعذر إنشاء ملف المدير المستقل")
+                    }
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun LoginFieldsExplanationDialog(
+    onDismiss: () -> Unit,
+    onQuickFillDeveloper: () -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "دليل وإيضاح خانات تسجيل الدخول",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 1. Identifier Field Explanation
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "1. خانة الاسم أو البريد الإلكتروني",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Text(
+                            text = "تقبل اسم المطور الكامل (Deffas antar) أو اسم المستخدم (antar7theman) أو البريد (Antar7theman@gmail.com)، وكذلك أسماء أو إيميلات المدراء والعمال المسجلين في النظام.",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+
+                // 2. Secret / Password Field Explanation
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "2. خانة الرقم السري / كلمة المرور",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Text(
+                            text = "للمطور والمالك: أدخل الرمز السري المخصص (Antar19930716).\nللمدير المستقل أو العامل: أدخل رمز PIN السري المسجل في بطاقة الحساب.",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+
+                // 3. Remember Me Explanation
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = semantic.profitContainer.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, semantic.profitGreen.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = semantic.profitGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "3. خيار 'تذكرني والبقاء متصلاً'",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Text(
+                            text = "عند تفعيل هذا الخيار، يتم حفظ بيانات الاعتماد بشكل آمن في DataStore والدخول المباشر للتطبيق عند الفتح في المرات القادمة دون الحاجة لإعادة الكتابة.",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+
+                // 4. Quick Fill Action Button
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onQuickFillDeveloper() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "⚡", fontSize = 16.sp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "تعبئة بيانات المطور فوراً",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "اضغط هنا لملء ${StaffAccountRepository.OWNER_FULL_NAME} وكلمة المرور تلقائياً.",
+                                fontSize = 10.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("فهمت ذلك", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+@Composable
+private fun RegisterIndependentManagerFromLoginDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (
+        fullName: String,
+        email: String,
+        phone: String,
+        branchName: String,
+        managerPin: String,
+        optionalOwnerSecret: String
+    ) -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+    var fullName by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var branchName by rememberSaveable { mutableStateOf("فرع مستقل") }
+    var managerPin by rememberSaveable { mutableStateOf("") }
+    var ownerSecret by rememberSaveable { mutableStateOf("") }
+    var showPasswords by rememberSaveable { mutableStateOf(false) }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("register_independent_manager_dialog")
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "إنشاء ملف مدير مستقل جديد",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "يتيح لك ملف المدير المستقل إدارة فرعك وإنشاء حسابات العمال التابعين لك برمز سري وصلاحيات مخصصة.",
+                    fontSize = 11.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                HorizontalDivider()
+
+                OutlinedTextField(
+                    value = fullName,
+                    onValueChange = {
+                        fullName = it
+                        localError = null
+                    },
+                    label = { Text("الاسم الكامل للمدير المستقل") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    trailingIcon = {
+                        if (fullName.isNotEmpty()) {
+                            IconButton(onClick = { fullName = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "مسح الاسم", modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("ind_mgr_fullname_input")
+                )
+
+                OutlinedTextField(
+                    value = branchName,
+                    onValueChange = {
+                        branchName = it
+                        localError = null
+                    },
+                    label = { Text("اسم الفرع أو القسم المستقل للمدير") },
+                    leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    trailingIcon = {
+                        if (branchName.isNotEmpty()) {
+                            IconButton(onClick = { branchName = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "مسح اسم الفرع", modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("ind_mgr_branch_input")
+                )
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = {
+                        email = it
+                        localError = null
+                    },
+                    label = { Text("البريد الإلكتروني للمدير (لدخول Google أو الرمز السري)") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    trailingIcon = {
+                        if (email.isNotEmpty()) {
+                            IconButton(onClick = { email = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "مسح البريد الإلكتروني", modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("ind_mgr_email_input")
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = { Text("رقم الهاتف") },
+                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("ind_mgr_phone_input")
+                    )
+
+                    OutlinedTextField(
+                        value = managerPin,
+                        onValueChange = {
+                            managerPin = it
+                            localError = null
+                        },
+                        label = { Text("رمز PIN") },
+                        leadingIcon = { Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                        trailingIcon = {
+                            IconButton(onClick = { showPasswords = !showPasswords }) {
+                                Icon(
+                                    imageVector = if (showPasswords) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (showPasswords) "إخفاء الرمز السري" else "إظهار الرمز السري",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        },
+                        visualTransformation = if (showPasswords) VisualTransformation.None else PasswordVisualTransformation(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("ind_mgr_pin_input")
+                    )
+                }
+
+                OutlinedTextField(
+                    value = ownerSecret,
+                    onValueChange = {
+                        ownerSecret = it
+                        localError = null
+                    },
+                    label = { Text("الرمز السري للمالك للتفعيل الفوري (اختياري)") },
+                    supportingText = {
+                        Text(
+                            "أدخل رمز المالك (Deffas antar) للتفعيل والدخول فوراً، أو اتركه فارغاً لإرسال طلب تفعيل للمالك.",
+                            fontSize = 10.5.sp
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.LockPerson, contentDescription = null, tint = semantic.profitGreen) },
+                    trailingIcon = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (ownerSecret.isNotEmpty()) {
+                                IconButton(onClick = { ownerSecret = "" }) {
+                                    Icon(Icons.Default.Close, contentDescription = "مسح رمز المالك", modifier = Modifier.size(18.dp))
+                                }
+                            }
+                            IconButton(onClick = { showPasswords = !showPasswords }) {
+                                Icon(
+                                    imageVector = if (showPasswords) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (showPasswords) "إخفاء الرمز" else "إظهار الرمز",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    },
+                    visualTransformation = if (showPasswords) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("ind_mgr_owner_secret_input")
+                )
+
+                if (!localError.isNullOrBlank()) {
+                    Text(
+                        text = localError.orEmpty(),
+                        color = semantic.dangerRed,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("إلغاء")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            when {
+                                fullName.trim().length < 2 -> localError = "يرجى إدخال اسم المدير المستقل"
+                                !email.contains("@") || email.trim().length < 5 -> localError = "يرجى إدخال بريد إلكتروني صحيح"
+                                managerPin.trim().length < 4 -> localError = "يرجى تعيين رمز سري للمدير (4 خانات على الأقل)"
+                                ownerSecret.isNotBlank() && !StaffAccountRepository.verifyOwnerSecretCode(ownerSecret) -> {
+                                    localError = "الرمز السري للمالك (Deffas antar) غير صحيح!"
+                                }
+                                else -> {
+                                    onSubmit(
+                                        fullName.trim(),
+                                        email.trim(),
+                                        phone.trim(),
+                                        branchName.trim().ifBlank { "فرع مستقل" },
+                                        managerPin.trim(),
+                                        ownerSecret.trim()
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.testTag("confirm_register_independent_manager_btn")
+                    ) {
+                        Text(
+                            text = if (ownerSecret.isNotBlank()) "إنشاء وتفعيل ودخول فوري" else "إنشاء ملف المدير وإرسال للمالك",
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuthenticatedStaffSessionGate(
+    firebaseUser: FirebaseUser,
+    initialCachedAccount: StaffAccount? = null,
+    storeName: String,
+    onApprovedAccountReady: (StaffAccount) -> Unit,
+    onOwnerCreatedManager: (StaffAccount, String) -> Unit,
+    onSignOut: () -> Unit,
+    approvedContent: @Composable (
+        myAccount: StaffAccount,
+        allStaffAccounts: List<StaffAccount>,
+        pendingCount: Int,
+        onOpenStaffManagement: () -> Unit,
+        onSignOut: () -> Unit
+    ) -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val semantic = LocalAFStoreSemanticColors.current
+    val networkMonitor = remember { NetworkConnectivityMonitor(context) }
+    val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle()
+    val repository = remember(context) { StaffAccountRepository(context.applicationContext) }
+
+    val isOwnerAccount = remember(firebaseUser.email) {
+        StaffAccountRepository.isOwnerEmail(firebaseUser.email)
+    }
+
+    val matchingCachedAccount = remember(firebaseUser.uid, firebaseUser.email, initialCachedAccount, isOwnerAccount) {
+        when {
+            isOwnerAccount -> StaffAccount.createVerifiedOwnerAccount(firebaseUser.uid)
+            initialCachedAccount != null && (
+                initialCachedAccount.userId == firebaseUser.uid ||
+                    initialCachedAccount.email.equals(firebaseUser.email.orEmpty(), ignoreCase = true)
+                ) -> initialCachedAccount
+            else -> {
+                StaffAccountRepository.loadLocalAccountsRegistry(context).firstOrNull {
+                    it.userId == firebaseUser.uid ||
+                        (firebaseUser.email != null && it.email.equals(firebaseUser.email, ignoreCase = true))
+                }
+            }
+        }
+    }
+
+    var isLoadingAccount by remember(firebaseUser.uid) { mutableStateOf(matchingCachedAccount == null) }
+    var myStaffAccount by remember(firebaseUser.uid) { mutableStateOf<StaffAccount?>(matchingCachedAccount) }
+    var firestoreError by remember(firebaseUser.uid) { mutableStateOf<String?>(null) }
+    var firestoreStaffAccounts by remember(firebaseUser.uid) { mutableStateOf<List<StaffAccount>>(emptyList()) }
+    var localRegistryAccounts by remember(firebaseUser.uid) {
+        mutableStateOf(StaffAccountRepository.loadLocalAccountsRegistry(context))
+    }
+    var showStaffManagementModal by rememberSaveable { mutableStateOf(false) }
+
+    val refreshLocalRegistry: () -> Unit = {
+        localRegistryAccounts = StaffAccountRepository.loadLocalAccountsRegistry(context)
+    }
+
+    LaunchedEffect(matchingCachedAccount) {
+        if (matchingCachedAccount != null && matchingCachedAccount.isApproved) {
+            onApprovedAccountReady(matchingCachedAccount)
+        }
+    }
+
+    // Observe the signed-in user's StaffAccount in real time
+    LaunchedEffect(firebaseUser.uid) {
+        if (matchingCachedAccount == null) {
+            isLoadingAccount = true
+        }
+        firestoreError = null
+        if (isOwnerAccount) {
+            repository.bootstrapOwnerAccountIfNeeded(
+                fullNameOverride = StaffAccountRepository.OWNER_FULL_NAME
+            )
+        } else {
+            repository.claimPreApprovedManagerAccountIfMatchingEmail()
+        }
+        repository.observeMyStaffAccount(firebaseUser.uid)
+            .catch { e ->
+                Log.w("StaffAuthGate", "Error observing staff account", e)
+                if (myStaffAccount == null && isOwnerAccount) {
+                    val fallbackOwner = StaffAccount.createVerifiedOwnerAccount(firebaseUser.uid)
+                    myStaffAccount = fallbackOwner
+                    onApprovedAccountReady(fallbackOwner)
+                } else {
+                    firestoreError = e.localizedMessage ?: "تعذر قراءة بيانات الحساب من Firestore"
+                }
+                isLoadingAccount = false
+            }
+            .collect { account ->
+                if (account == null && isOwnerAccount) {
+                    val fallbackOwner = StaffAccount.createVerifiedOwnerAccount(firebaseUser.uid)
+                    myStaffAccount = fallbackOwner
+                    isLoadingAccount = false
+                    onApprovedAccountReady(fallbackOwner)
+                    repository.bootstrapOwnerAccountIfNeeded(
+                        fullNameOverride = StaffAccountRepository.OWNER_FULL_NAME
+                    )
+                } else if (account == null) {
+                    val claimed = repository.claimPreApprovedManagerAccountIfMatchingEmail().getOrNull()
+                    if (claimed != null) {
+                        myStaffAccount = claimed
+                        isLoadingAccount = false
+                        onApprovedAccountReady(claimed)
+                    } else if (matchingCachedAccount == null) {
+                        myStaffAccount = null
+                        isLoadingAccount = false
+                    }
+                } else {
+                    myStaffAccount = account
+                    isLoadingAccount = false
+                    if (account.isApproved) {
+                        onApprovedAccountReady(account)
+                    }
+                }
+            }
+    }
+
+    // Observe staff accounts according to role: Owner observes all; Independent Manager observes only their affiliated workers
+    val activeAccount = myStaffAccount
+    val isApprovedOwner = activeAccount?.isOwner == true
+    val isApprovedRegularManager = activeAccount?.isRegularManager == true
+    LaunchedEffect(firebaseUser.uid, isApprovedOwner, isApprovedRegularManager) {
+        when {
+            isApprovedOwner -> {
+                repository.observeAllStoreStaffAccounts()
+                    .catch { e ->
+                        Log.w("StaffAuthGate", "Error observing all store staff accounts", e)
+                    }
+                    .collect { list ->
+                        firestoreStaffAccounts = list
+                    }
+            }
+            isApprovedRegularManager -> {
+                repository.observeManagerAffiliatedWorkers(firebaseUser.uid)
+                    .catch { e ->
+                        Log.w("StaffAuthGate", "Error observing manager affiliated workers", e)
+                    }
+                    .collect { list ->
+                        firestoreStaffAccounts = list
+                    }
+            }
+            else -> {
+                firestoreStaffAccounts = emptyList()
+            }
+        }
+    }
+
+    val allStaffAccounts = remember(firestoreStaffAccounts, localRegistryAccounts, activeAccount) {
+        val mergedByKey = linkedMapOf<String, StaffAccount>()
+        localRegistryAccounts.forEach { acc ->
+            val key = acc.email.lowercase().ifBlank { acc.userId }
+            mergedByKey[key] = acc
+        }
+        firestoreStaffAccounts.forEach { acc ->
+            val key = acc.email.lowercase().ifBlank { acc.userId }
+            val existingLocal = mergedByKey[key]
+            mergedByKey[key] = if (existingLocal != null && acc.secretPin.isBlank()) {
+                acc.copy(
+                    secretPin = existingLocal.secretPin,
+                    branchName = acc.branchName.ifBlank { existingLocal.branchName },
+                    parentManagerUid = acc.parentManagerUid.ifBlank { existingLocal.parentManagerUid },
+                    parentManagerName = acc.parentManagerName.ifBlank { existingLocal.parentManagerName },
+                    parentManagerEmail = acc.parentManagerEmail.ifBlank { existingLocal.parentManagerEmail }
+                )
+            } else {
+                acc
+            }
+        }
+        val allMerged = mergedByKey.values.toList()
+        when {
+            activeAccount == null -> emptyList()
+            activeAccount.isOwner -> allMerged
+            activeAccount.isRegularManager -> allMerged.filter {
+                it.userId == activeAccount.userId || it.isAffiliatedWithManager(activeAccount)
+            }
+            else -> listOf(activeAccount)
+        }
+    }
+
+    val pendingRequestsCount = remember(allStaffAccounts) {
+        allStaffAccounts.count { it.approvalStatus == StaffApprovalStatus.PENDING }
+    }
+
+    val currentAccount = myStaffAccount
+
+    when {
+        isLoadingAccount -> {
+            val checkingAccountTitle = remember(firebaseUser.displayName, firebaseUser.email, isOwnerAccount) {
+                when {
+                    isOwnerAccount -> StaffAccountRepository.OWNER_FULL_NAME + " (المالك والمطور الرئيسي)"
+                    !firebaseUser.displayName.isNullOrBlank() -> firebaseUser.displayName!!
+                    !firebaseUser.email.isNullOrBlank() -> firebaseUser.email!!
+                    else -> "مستخدم متجر AF store"
+                }
+            }
+            val checkingAccountEmail = firebaseUser.email ?: ""
+
+            Scaffold(
+                contentWindowInsets = WindowInsets.systemBars,
+                containerColor = MaterialTheme.colorScheme.background
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        shape = RoundedCornerShape(26.dp),
+                        colors = CardDefaults.cardColors(containerColor = semantic.cardElevated),
+                        border = BorderStroke(1.5.dp, semantic.cardBorder),
+                        elevation = CardDefaults.cardElevation(defaultElevation = if (semantic.isDark) 0.dp else 8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = 480.dp)
+                            .testTag("account_verification_card")
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // 1. App / Store Header Badge
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                                ) {
+                                    Text(
+                                        text = "AF STORE",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 11.5.sp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                                Text(
+                                    text = storeName,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            // 2. Central Cloud Sync Halo Icon
+                            Box(
+                                modifier = Modifier
+                                    .size(76.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = "التحقق السحابي عبر فايربيس",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+
+                            // 3. Status Title & Description
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "جاري التحقق من صلاحيات الحساب سحابياً...",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = "يتم الآن فحص وتوثيق رتبة الحساب، صلاحيات الأمان، وترخيص العمل عبر سحابة Firebase Firestore",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    lineHeight = 16.sp
+                                )
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+
+                            // 4. Account Details Card (Current checking user name & email)
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (isOwnerAccount) semantic.profitGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        modifier = Modifier.size(40.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = if (isOwnerAccount) Icons.Default.AdminPanelSettings else Icons.Default.Person,
+                                                contentDescription = null,
+                                                tint = if (isOwnerAccount) semantic.profitGreen else MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = checkingAccountTitle,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            if (isOwnerAccount) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = semantic.profitGreen.copy(alpha = 0.15f)
+                                                ) {
+                                                    Text(
+                                                        text = "مالك ✓",
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        color = semantic.profitGreen,
+                                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        if (checkingAccountEmail.isNotBlank()) {
+                                            Text(
+                                                text = checkingAccountEmail,
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 5. Cloud Connectivity Badge
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isOnline) semantic.profitContainer.copy(alpha = 0.7f) else semantic.debtContainer.copy(alpha = 0.85f),
+                                border = BorderStroke(1.dp, if (isOnline) semantic.profitGreen.copy(alpha = 0.5f) else semantic.debtAmber.copy(alpha = 0.6f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(9.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isOnline) semantic.profitGreen else semantic.debtAmber)
+                                        )
+                                        Icon(
+                                            imageVector = if (isOnline) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                                            contentDescription = null,
+                                            tint = if (isOnline) semantic.profitGreen else semantic.debtAmber,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = if (isOnline) "سحابة Firebase: متصل بنجاح" else "حالة الاتصال: غير متصل (محلي)",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isOnline) semantic.profitGreen else semantic.debtAmber
+                                        )
+                                    }
+
+                                    Text(
+                                        text = if (isOnline) "Cloud Online ✓" else "Offline Cache ⚡",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isOnline) semantic.profitGreen else semantic.debtAmber
+                                    )
+                                }
+                            }
+
+                            // 6. Smooth Gradient / Polished Progress Bar
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                    strokeCap = StrokeCap.Round
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "مزامنة الصلاحيات اللحظية",
+                                        fontSize = 10.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "Firebase Firestore SDK",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            // 7. Cancel / Switch Account Button
+                            OutlinedButton(
+                                onClick = onSignOut,
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("cancel_account_check_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "إلغاء وفحص حساب آخر / تسجيل الخروج",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        currentAccount == null -> {
+            NewStaffAccountRegistrationScreen(
+                firebaseUser = firebaseUser,
+                storeName = storeName,
+                errorMessage = firestoreError,
+                onSubmitRequest = { fullName, phone, onComplete ->
+                    scope.launch {
+                        val res = repository.registerPendingAccountRequest(
+                            fullName = fullName,
+                            phone = phone,
+                            requestedRole = "worker"
+                        )
+                        if (res.isFailure) {
+                            firestoreError = res.exceptionOrNull()?.localizedMessage
+                                ?: "تعذر إرسال طلب فتح الحساب"
+                        } else {
+                            firestoreError = null
+                        }
+                        onComplete()
+                    }
+                },
+                onSignOut = onSignOut
+            )
+        }
+
+        !currentAccount.isApproved -> {
+            StaffPendingApprovalScreen(
+                account = currentAccount,
+                storeName = storeName,
+                errorMessage = firestoreError,
+                onUpdateDetails = { updatedName, updatedPhone, onDone ->
+                    scope.launch {
+                        val res = repository.updateOwnProfileDetails(
+                            fullName = updatedName,
+                            phone = updatedPhone,
+                            requestedRole = "worker"
+                        )
+                        if (res.isFailure) {
+                            firestoreError = res.exceptionOrNull()?.localizedMessage
+                        } else {
+                            firestoreError = null
+                        }
+                        onDone()
+                    }
+                },
+                onSignOut = onSignOut
+            )
+        }
+
+        else -> {
+            approvedContent(
+                currentAccount,
+                allStaffAccounts,
+                pendingRequestsCount,
+                {
+                    refreshLocalRegistry()
+                    showStaffManagementModal = true
+                },
+                onSignOut
+            )
+
+            if (showStaffManagementModal) {
+                StaffAccountsManagementModal(
+                    myAccount = currentAccount,
+                    allAccounts = allStaffAccounts,
+                    repository = repository,
+                    onOwnerCreatedManager = { newAcc, pin ->
+                        StaffAccountRepository.saveAccountToLocalRegistry(context, newAcc)
+                        refreshLocalRegistry()
+                        onOwnerCreatedManager(newAcc, pin)
+                    },
+                    onLocalRegistryUpdated = refreshLocalRegistry,
+                    onDismiss = { showStaffManagementModal = false },
+                    onSignOut = {
+                        showStaffManagementModal = false
+                        onSignOut()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NewStaffAccountRegistrationScreen(
+    firebaseUser: FirebaseUser,
+    storeName: String,
+    errorMessage: String?,
+    onSubmitRequest: (fullName: String, phone: String, onComplete: () -> Unit) -> Unit,
+    onSignOut: () -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+    var fullName by rememberSaveable(firebaseUser.uid) {
+        mutableStateOf(firebaseUser.displayName?.takeIf { it.isNotBlank() } ?: "")
+    }
+    var phone by rememberSaveable(firebaseUser.uid) { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) }
+
+    Scaffold(
+        contentWindowInsets = WindowInsets.systemBars,
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = semantic.cardElevated),
+                border = BorderStroke(1.2.dp, semantic.cardBorder),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 520.dp)
+                    .testTag("staff_registration_card")
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(22.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.PersonAdd,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "طلب فتح حساب عامل مبيعات / كاشير",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 17.sp
+                            )
+                            Text(
+                                text = "$storeName • ${firebaseUser.email ?: ""}",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Badge,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "نوع الحساب: عامل مبيعات / كاشير",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 12.5.sp
+                                )
+                            }
+                            Text(
+                                text = "التسجيل الذاتي من هذه الشاشة مخصص للعمال فقط. حسابات المدراء يتم إنشاؤها حصرياً ويدوياً من لوحة مالك المتجر (Deffas antar).",
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 17.sp
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = fullName,
+                        onValueChange = { fullName = it },
+                        label = { Text("الاسم الكامل للعامل") },
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("staff_reg_fullname_input")
+                    )
+
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = { Text("رقم الهاتف للتواصل (اختياري)") },
+                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("staff_reg_phone_input")
+                    )
+
+                    if (!errorMessage.isNullOrBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = semantic.dangerRed.copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, semantic.dangerRed.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = errorMessage,
+                                color = semantic.dangerRed,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            isSubmitting = true
+                            onSubmitRequest(
+                                fullName.trim().ifBlank { firebaseUser.displayName ?: "عامل جديد" },
+                                phone.trim()
+                            ) {
+                                isSubmitting = false
+                            }
+                        },
+                        enabled = !isSubmitting && fullName.trim().length >= 2,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("submit_staff_registration_btn")
+                    ) {
+                        if (isSubmitting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("جاري إرسال طلب فتح حساب العامل...")
+                        } else {
+                            Icon(Icons.Default.HowToReg, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("إرسال طلب فتح حساب عامل للإدارة", fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = onSignOut,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("تسجيل الخروج وتبديل حساب Google")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StaffPendingApprovalScreen(
+    account: StaffAccount,
+    storeName: String,
+    errorMessage: String?,
+    onUpdateDetails: (fullName: String, phone: String, onDone: () -> Unit) -> Unit,
+    onSignOut: () -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+    var isEditing by rememberSaveable { mutableStateOf(false) }
+    var editedName by rememberSaveable(account.fullName) { mutableStateOf(account.fullName) }
+    var editedPhone by rememberSaveable(account.phone) { mutableStateOf(account.phone) }
+    var isSaving by remember { mutableStateOf(false) }
+
+    val statusColor = when (account.approvalStatus) {
+        StaffApprovalStatus.REJECTED, StaffApprovalStatus.SUSPENDED -> semantic.dangerRed
+        else -> semantic.debtAmber
+    }
+
+    val statusTitle = when (account.approvalStatus) {
+        StaffApprovalStatus.REJECTED -> "تم رفض طلب الدخول إلى الحساب"
+        StaffApprovalStatus.SUSPENDED -> "تم إيقاف هذا الحساب مؤقتاً من طرف الإدارة"
+        else -> "طلب فتح الحساب بانتظار موافقة الإدارة ⏳"
+    }
+
+    val statusDescription = when (account.approvalStatus) {
+        StaffApprovalStatus.REJECTED -> "قامت إدارة المتجر برفض طلب الدخول الحالي. يمكنك تعديل بيانات الطلب أو التواصل مع مالك المتجر (Deffas antar)."
+        StaffApprovalStatus.SUSPENDED -> "تم تعليق صلاحية دخول هذا الحساب مؤقتاً. تواصل مع مالك المتجر أو المدير لإعادة تفعيل الحساب."
+        else -> "تم تسجيل طلبك كعامل في سحابة Firebase! بمجرد ضغط المالك (Deffas antar) أو المدير على «موافقة على الدخول» ستفتح لك شاشات المتجر تلقائياً في نفس اللحظة."
+    }
+
+    Scaffold(
+        contentWindowInsets = WindowInsets.systemBars,
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = semantic.cardElevated),
+                border = BorderStroke(1.5.dp, statusColor.copy(alpha = 0.65f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 520.dp)
+                    .testTag("staff_pending_approval_card")
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(22.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = statusColor.copy(alpha = 0.16f),
+                        border = BorderStroke(1.5.dp, statusColor),
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (account.isPending) Icons.Default.HourglassTop else Icons.Default.LockPerson,
+                                contentDescription = null,
+                                tint = statusColor,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = statusTitle,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp,
+                        color = statusColor,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = statusDescription,
+                        fontSize = 12.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 19.sp
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "بيانات الحساب المسجل في $storeName:",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.5.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text("• الاسم: ${account.fullName}", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                            Text("• البريد: ${account.email}", fontSize = 12.sp)
+                            if (account.phone.isNotBlank()) {
+                                Text("• الهاتف: ${account.phone}", fontSize = 12.sp)
+                            }
+                            Text(
+                                text = "• المسمى الوظيفي: عامل مبيعات / كاشير",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "• الحالة الحالية: ${StaffApprovalStatus.labelAr(account.approvalStatus)}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = statusColor
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = isEditing) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = editedName,
+                                onValueChange = { editedName = it },
+                                label = { Text("تعديل الاسم الكامل") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = editedPhone,
+                                onValueChange = { editedPhone = it },
+                                label = { Text("تعديل رقم الهاتف") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Button(
+                                onClick = {
+                                    isSaving = true
+                                    onUpdateDetails(editedName, editedPhone) {
+                                        isSaving = false
+                                        isEditing = false
+                                    }
+                                },
+                                enabled = !isSaving && editedName.trim().length >= 2,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(if (isSaving) "جاري الحفظ..." else "حفظ التعديلات")
+                            }
+                        }
+                    }
+
+                    if (!errorMessage.isNullOrBlank()) {
+                        Text(
+                            text = errorMessage,
+                            color = semantic.dangerRed,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { isEditing = !isEditing },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(17.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(if (isEditing) "إغلاق التعديل" else "تعديل بيانات الطلب", fontSize = 12.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = onSignOut,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(17.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("تسجيل الخروج", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PendingStaffApprovalsBanner(
+    pendingCount: Int,
+    onOpenApprovalModal: () -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+    AnimatedVisibility(
+        visible = pendingCount > 0,
+        enter = fadeIn(animationSpec = tween(350)) + slideInVertically(animationSpec = tween(350)) { -it },
+        exit = fadeOut(animationSpec = tween(250)) + slideOutVertically(animationSpec = tween(250)) { -it }
+    ) {
+        Surface(
+            color = if (semantic.isDark) Color(0xFF3B2106) else Color(0xFFFFFBEB),
+            border = BorderStroke(1.2.dp, semantic.debtAmber),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .clickable { onOpenApprovalModal() }
+                .testTag("pending_staff_approvals_banner")
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NotificationsActive,
+                        contentDescription = null,
+                        tint = semantic.debtAmber,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "طلبات دخول حسابات العمال ($pendingCount طلب معلق)",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.sp,
+                            color = if (semantic.isDark) Color.White else Color(0xFF78350F)
+                        )
+                        Text(
+                            text = "اضغط هنا لمراجعة طلبات العمال الجدد والموافقة على دخولهم وتحديد صلاحياتهم",
+                            fontSize = 10.5.sp,
+                            color = if (semantic.isDark) Color(0xFFFDE68A) else Color(0xFF92400E)
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = onOpenApprovalModal,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = semantic.debtAmber,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("مراجعة والموافقة", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun StaffAccountsManagementModal(
+    myAccount: StaffAccount,
+    allAccounts: List<StaffAccount>,
+    repository: StaffAccountRepository,
+    onOwnerCreatedManager: (StaffAccount, String) -> Unit = { _, _ -> },
+    onLocalRegistryUpdated: () -> Unit = {},
+    onDismiss: () -> Unit,
+    onSignOut: () -> Unit
+) {
+    val context = LocalContext.current
+    val semantic = LocalAFStoreSemanticColors.current
+    val scope = rememberCoroutineScope()
+    var selectedTabItem by rememberSaveable { mutableIntStateOf(0) }
+    var selectedManagerFilterUid by rememberSaveable { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var editingPermissionsTarget by remember { mutableStateOf<StaffAccount?>(null) }
+    var showCreateManagerDialog by rememberSaveable { mutableStateOf(false) }
+    var showCreateWorkerDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingPromoteToManagerTarget by remember { mutableStateOf<StaffAccount?>(null) }
+    var actionFeedbackMessage by remember { mutableStateOf<String?>(null) }
+
+    val isCallerOwner = myAccount.isOwner
+
+    val visibleAccounts = remember(allAccounts, isCallerOwner, myAccount) {
+        if (isCallerOwner) {
+            allAccounts
+        } else {
+            allAccounts.filter {
+                it.userId == myAccount.userId || it.isAffiliatedWithManager(myAccount)
+            }
+        }
+    }
+
+    val independentManagersList = remember(allAccounts) {
+        allAccounts.filter { it.role == "manager" && !it.isOwner }
+    }
+
+    val myAffiliatedWorkersCount = remember(visibleAccounts, myAccount) {
+        visibleAccounts.count { it.role == "worker" && !it.isOwner && it.userId != myAccount.userId }
+    }
+
+    val pendingCount = remember(visibleAccounts) {
+        visibleAccounts.count { it.approvalStatus == StaffApprovalStatus.PENDING }
+    }
+    val approvedCount = remember(visibleAccounts) {
+        visibleAccounts.count { it.approvalStatus == StaffApprovalStatus.APPROVED }
+    }
+    val managersCount = remember(allAccounts) {
+        allAccounts.count { it.role == "manager" || it.isOwner }
+    }
+    val blockedCount = remember(visibleAccounts) {
+        visibleAccounts.count {
+            it.approvalStatus == StaffApprovalStatus.REJECTED ||
+                    it.approvalStatus == StaffApprovalStatus.SUSPENDED
+        }
+    }
+
+    val filteredAccounts = remember(visibleAccounts, selectedTabItem, selectedManagerFilterUid, searchQuery, independentManagersList) {
+        val baseFiltered = when (selectedTabItem) {
+            1 -> visibleAccounts.filter { it.role == "manager" || it.isOwner || it.requestedRole == "manager" }
+            2 -> visibleAccounts.filter { it.role == "worker" && !it.isOwner }
+            3 -> visibleAccounts.filter { it.approvalStatus == StaffApprovalStatus.PENDING }
+            4 -> visibleAccounts.filter { it.approvalStatus == StaffApprovalStatus.APPROVED }
+            5 -> visibleAccounts.filter {
+                it.approvalStatus == StaffApprovalStatus.REJECTED ||
+                        it.approvalStatus == StaffApprovalStatus.SUSPENDED
+            }
+            else -> visibleAccounts
+        }
+
+        val managerFiltered = if (selectedManagerFilterUid.isBlank()) {
+            baseFiltered
+        } else {
+            val selectedMgr = independentManagersList.firstOrNull { it.userId == selectedManagerFilterUid }
+            if (selectedMgr == null) {
+                baseFiltered
+            } else {
+                baseFiltered.filter {
+                    it.userId == selectedMgr.userId || it.isAffiliatedWithManager(selectedMgr)
+                }
+            }
+        }
+
+        if (searchQuery.isBlank()) {
+            managerFiltered
+        } else {
+            val q = searchQuery.trim()
+            managerFiltered.filter {
+                it.fullName.contains(q, ignoreCase = true) ||
+                        it.email.contains(q, ignoreCase = true) ||
+                        it.branchName.contains(q, ignoreCase = true) ||
+                        it.phone.contains(q, ignoreCase = true)
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(0.dp),
+            color = MaterialTheme.colorScheme.background,
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("staff_accounts_management_modal")
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                // Top App Bar
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.fillMaxWidth().statusBarsPadding()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = if (isCallerOwner) {
+                                    "لوحة المالك (Deffas antar) • إشراف المدراء والعمال"
+                                } else {
+                                    "ملف المدير المستقل • إدارة العمال والفرع"
+                                },
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "الحساب النشط: ${myAccount.fullName} (${myAccount.roleBadgeLabelAr}) • الإجمالي: ${visibleAccounts.size} حسابات",
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = onDismiss) {
+                                Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                            }
+                        }
+                    }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Owner Exclusive Banner (Ultra-Compact)
+                    if (isCallerOwner) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = semantic.profitGreen.copy(alpha = 0.08f),
+                            border = BorderStroke(1.dp, semantic.profitGreen.copy(alpha = 0.35f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("owner_exclusive_manager_creation_banner")
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "صلاحية المالك الشاملة • ${myAccount.fullName}",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 12.sp,
+                                        color = semantic.profitGreen,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = semantic.profitGreen.copy(alpha = 0.18f)
+                                    ) {
+                                        Text(
+                                            text = "المالك الرئيسي",
+                                            fontSize = 9.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = semantic.profitGreen,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = { showCreateManagerDialog = true },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = semantic.profitGreen,
+                                            contentColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(36.dp)
+                                            .testTag("create_manager_by_owner_btn")
+                                    ) {
+                                        Icon(Icons.Default.AdminPanelSettings, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "إنشاء مدير مستقل",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.5.sp,
+                                            maxLines = 1
+                                        )
+                                    }
+
+                                    Button(
+                                        onClick = { showCreateWorkerDialog = true },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(36.dp)
+                                            .testTag("create_worker_by_manager_btn")
+                                    ) {
+                                        Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "إنشاء حساب عامل",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.5.sp,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else if (myAccount.isRegularManager) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("independent_manager_profile_banner")
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "ملف المدير: ${myAccount.fullName} • ${myAccount.branchName.ifBlank { "فرع مستقل" }}",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    if (myAccount.secretPin.isNotBlank()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = semantic.profitGreen.copy(alpha = 0.16f),
+                                            border = BorderStroke(1.dp, semantic.profitGreen.copy(alpha = 0.45f))
+                                        ) {
+                                            Text(
+                                                text = "رمزك: ${myAccount.secretPin}",
+                                                fontSize = 9.5.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = semantic.profitGreen,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { showCreateWorkerDialog = true },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(36.dp)
+                                        .testTag("create_worker_by_manager_btn")
+                                ) {
+                                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "➕ إنشاء حساب عامل تابع برمز سري",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.5.sp,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Search & FilterBar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("بحث باسم الحساب، الإيميل، أو الفرع...", fontSize = 12.sp) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotBlank()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "مسح")
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        singleLine = true
+                    )
+
+                    // Horizontal Tabs with Count Badges
+                    val tabsList = remember(isCallerOwner, visibleAccounts.size, managersCount, myAffiliatedWorkersCount, pendingCount, approvedCount, blockedCount) {
+                        listOfNotNull(
+                            "الكل (${visibleAccounts.size})",
+                            if (isCallerOwner) "المدراء ($managersCount)" else null,
+                            "العمال ($myAffiliatedWorkersCount)",
+                            if (pendingCount > 0) "المعلقة ⏳ ($pendingCount)" else "المعلقة ($pendingCount)",
+                            "المعتمدة ✓ ($approvedCount)",
+                            if (blockedCount > 0) "الموقوفة ($blockedCount)" else null
+                        )
+                    }
+
+                    ScrollableTabRow(
+                        selectedTabIndex = selectedTabItem.coerceAtMost(tabsList.size - 1),
+                        edgePadding = 0.dp,
+                        divider = {},
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        tabsList.forEachIndexed { index, tabTitle ->
+                            Tab(
+                                selected = selectedTabItem == index,
+                                onClick = {
+                                    selectedTabItem = index
+                                    selectedManagerFilterUid = ""
+                                },
+                                text = {
+                                    Text(
+                                        text = tabTitle,
+                                        fontWeight = if (selectedTabItem == index) FontWeight.ExtraBold else FontWeight.Medium,
+                                        fontSize = 12.sp,
+                                        color = if (selectedTabItem == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            )
+                        }
+                    }
+
+                    // Owner Hierarchy Filter by Independent Manager (if selected)
+                    if (isCallerOwner && independentManagersList.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("تصفية بالمدير:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            ScrollableTabRow(
+                                selectedTabIndex = 0,
+                                edgePadding = 0.dp,
+                                divider = {},
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                FilterChip(
+                                    selected = selectedManagerFilterUid.isBlank(),
+                                    onClick = { selectedManagerFilterUid = "" },
+                                    label = { Text("جميع الفرق", fontSize = 11.sp) },
+                                    modifier = Modifier.padding(end = 4.dp)
+                                )
+                                independentManagersList.forEach { mgr ->
+                                    val countForMgr = allAccounts.count { it.isAffiliatedWithManager(mgr) }
+                                    val isSelected = selectedManagerFilterUid == mgr.userId
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = {
+                                            selectedManagerFilterUid = if (isSelected) "" else mgr.userId
+                                        },
+                                        label = {
+                                            Text(
+                                                text = "${mgr.fullName} ($countForMgr)",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        },
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    AnimatedVisibility(visible = actionFeedbackMessage != null) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = actionFeedbackMessage.orEmpty(),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                TextButton(onClick = { actionFeedbackMessage = null }) {
+                                    Text("إخفاء", fontSize = 11.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    if (!myAccount.isManagerOrAdmin) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = semantic.cardElevated),
+                            border = BorderStroke(1.dp, semantic.cardBorder),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "أنت مسجل حالياً بصلاحية: ${myAccount.roleBadgeLabelAr}",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = "إنشاء وإدارة حسابات العمال متاح للمالك (Deffas antar) أو لكل مدير مستقل على عماله التابعين له.",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                OutlinedButton(onClick = onSignOut) {
+                                    Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("تسجيل الخروج")
+                                }
+                            }
+                        }
+                    } else {
+                        // Expanded Browsing List taking full remaining height
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(bottom = 12.dp)
+                        ) {
+                            if (filteredAccounts.isEmpty()) {
+                                item {
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = semantic.cardElevated,
+                                        border = BorderStroke(1.dp, semantic.cardBorder),
+                                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(24.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Group,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(36.dp)
+                                            )
+                                            Text(
+                                                text = "لا توجد حسابات مطابقة للفلتر أو البحث المحدد",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp
+                                            )
+                                            Text(
+                                                text = if (isCallerOwner) {
+                                                    "يمكنك إنشاء ملف مدير مستقل جديد أو إنشاء حساب عامل تابع من الأزرار أعلاه."
+                                                } else {
+                                                    "اضغط على زر «إنشاء حساب عامل تابع لملفي» أعلاه لإضافة عمال تابعين لفرعك برمز سري وصلاحيات مخصصة."
+                                                },
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                items(filteredAccounts, key = { it.userId }) { staff ->
+                                    val affiliatedCountForThisManager = if (staff.role == "manager" && !staff.isOwner) {
+                                        allAccounts.count { it.isAffiliatedWithManager(staff) }
+                                    } else {
+                                        0
+                                    }
+                                    StaffAccountApprovalItemCard(
+                                        staff = staff,
+                                        affiliatedWorkersCount = affiliatedCountForThisManager,
+                                        isCurrentUser = staff.userId == myAccount.userId,
+                                        isCallerOwner = isCallerOwner,
+                                        onQuickApproveAsWorker = {
+                                            scope.launch {
+                                                val updatedAcc = staff.copy(
+                                                    approvalStatus = StaffApprovalStatus.APPROVED,
+                                                    role = "worker",
+                                                    approvedByUid = myAccount.userId,
+                                                    approvedByName = myAccount.fullName,
+                                                    parentManagerUid = if (!isCallerOwner) myAccount.userId else staff.parentManagerUid,
+                                                    parentManagerName = if (!isCallerOwner) myAccount.fullName else staff.parentManagerName,
+                                                    parentManagerEmail = if (!isCallerOwner) myAccount.email else staff.parentManagerEmail
+                                                )
+                                                val res = repository.approveOrUpdateStaffAccount(
+                                                    targetAccount = staff,
+                                                    newApprovalStatus = StaffApprovalStatus.APPROVED,
+                                                    newRole = "worker",
+                                                    permissions = staff.toWorkerPermissions(),
+                                                    managerName = myAccount.fullName,
+                                                    isCallerOwner = isCallerOwner,
+                                                    callerAccount = myAccount
+                                                )
+                                                if (res.isSuccess) {
+                                                    StaffAccountRepository.saveAccountToLocalRegistry(context, updatedAcc)
+                                                    onLocalRegistryUpdated()
+                                                    onOwnerCreatedManager(updatedAcc, updatedAcc.secretPin.ifBlank { "1234" })
+                                                    actionFeedbackMessage = "تمت الموافقة على دخول «${staff.fullName}» كعامل مبيعات ✓"
+                                                } else {
+                                                    actionFeedbackMessage = "تعذر التحديث: ${res.exceptionOrNull()?.localizedMessage}"
+                                                }
+                                            }
+                                        },
+                                        onQuickApproveAsManager = {
+                                            pendingPromoteToManagerTarget = staff
+                                        },
+                                        onRejectOrSuspend = { newStatus ->
+                                            scope.launch {
+                                                val updatedAcc = staff.copy(approvalStatus = newStatus)
+                                                val res = repository.approveOrUpdateStaffAccount(
+                                                    targetAccount = staff,
+                                                    newApprovalStatus = newStatus,
+                                                    newRole = if (isCallerOwner) staff.role else "worker",
+                                                    permissions = staff.toWorkerPermissions(),
+                                                    managerName = myAccount.fullName,
+                                                    isCallerOwner = isCallerOwner,
+                                                    ownerSecretCode = if (isCallerOwner) StaffAccountRepository.OWNER_SECRET_CODE else "",
+                                                    callerAccount = myAccount
+                                                )
+                                                if (res.isSuccess) {
+                                                    StaffAccountRepository.saveAccountToLocalRegistry(context, updatedAcc)
+                                                    onLocalRegistryUpdated()
+                                                    actionFeedbackMessage = "تم تحديث حالة حساب «${staff.fullName}» إلى ${StaffApprovalStatus.labelAr(newStatus)}"
+                                                } else {
+                                                    actionFeedbackMessage = "تعذر تحديث الحالة: ${res.exceptionOrNull()?.localizedMessage}"
+                                                }
+                                            }
+                                        },
+                                        onCustomizePermissions = {
+                                            editingPermissionsTarget = staff
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Bottom Footer Bar
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 3.dp,
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 18.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = onSignOut,
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                            modifier = Modifier
+                                .height(46.dp)
+                                .testTag("staff_modal_sign_out_btn")
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("تسجيل الخروج من الحساب", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = onDismiss,
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+                            modifier = Modifier.height(46.dp)
+                        ) {
+                            Text("إغلاق النافذة", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showCreateManagerDialog && isCallerOwner) {
+        CreateManagerByOwnerDialog(
+            onDismiss = { showCreateManagerDialog = false },
+            onCreateManager = { fullName, email, phone, branchName, managerPin, ownerSecret, perms ->
+                scope.launch {
+                    val res = repository.createManagerAccountByOwner(
+                        managerFullName = fullName,
+                        managerEmail = email,
+                        managerPhone = phone,
+                        ownerSecretCode = ownerSecret,
+                        permissions = perms,
+                        branchName = branchName,
+                        managerSecretPin = managerPin
+                    )
+                    if (res.isSuccess) {
+                        val created = res.getOrThrow()
+                        StaffAccountRepository.saveAccountToLocalRegistry(context, created)
+                        onLocalRegistryUpdated()
+                        onOwnerCreatedManager(created, managerPin)
+                        showCreateManagerDialog = false
+                        actionFeedbackMessage = "تم إنشاء واعتماد ملف المدير المستقل «$fullName» ($branchName) بنجاح ✓"
+                    } else {
+                        actionFeedbackMessage = res.exceptionOrNull()?.localizedMessage ?: "تعذر إنشاء ملف المدير المستقل"
+                    }
+                }
+            }
+        )
+    }
+
+    if (showCreateWorkerDialog && myAccount.isManagerOrAdmin) {
+        CreateAffiliatedWorkerByManagerDialog(
+            callerAccount = myAccount,
+            availableManagers = independentManagersList,
+            onDismiss = { showCreateWorkerDialog = false },
+            onCreateWorker = { targetManager, workerName, workerEmail, workerPhone, workerPin, perms ->
+                scope.launch {
+                    val res = repository.createWorkerAccountByManager(
+                        managerAccount = targetManager,
+                        workerFullName = workerName,
+                        workerEmail = workerEmail,
+                        workerPhone = workerPhone,
+                        workerSecretPin = workerPin,
+                        permissions = perms
+                    )
+                    if (res.isSuccess) {
+                        val createdWorker = res.getOrThrow()
+                        StaffAccountRepository.saveAccountToLocalRegistry(context, createdWorker)
+                        onLocalRegistryUpdated()
+                        onOwnerCreatedManager(createdWorker, workerPin)
+                        showCreateWorkerDialog = false
+                        actionFeedbackMessage = "تم إنشاء حساب العامل التابع «$workerName» وربطه بملف المدير «${targetManager.fullName}» بنجاح ✓"
+                    } else {
+                        actionFeedbackMessage = res.exceptionOrNull()?.localizedMessage ?: "تعذر إنشاء حساب العامل التابع"
+                    }
+                }
+            }
+        )
+    }
+
+    pendingPromoteToManagerTarget?.let { target ->
+        OwnerSecretVerificationDialog(
+            title = "تأكيد تفعيل ملف المدير المستقل «${target.fullName}»",
+            subtitle = "أدخل الرمز السري الخاص بالمالك (Deffas antar) لتأكيد اعتماد هذا الحساب كملف مدير مستقل:",
+            onDismiss = { pendingPromoteToManagerTarget = null },
+            onVerified = { verifiedSecret ->
+                scope.launch {
+                    val fullPerms = WorkerPermissions(
+                        canMakeSales = true,
+                        canManageInventory = true,
+                        canEditPrices = true,
+                        canViewReports = true,
+                        canManageDebtsAndCustomers = true,
+                        canRefundOrVoid = true,
+                        canApplyDiscounts = true,
+                        canViewCostPrices = true,
+                        canExportData = true,
+                        canManagePurchaseInvoices = true
+                    )
+                    val res = repository.approveOrUpdateStaffAccount(
+                        targetAccount = target,
+                        newApprovalStatus = StaffApprovalStatus.APPROVED,
+                        newRole = "manager",
+                        permissions = fullPerms,
+                        managerName = StaffAccountRepository.OWNER_FULL_NAME,
+                        isCallerOwner = true,
+                        ownerSecretCode = verifiedSecret,
+                        callerAccount = myAccount
+                    )
+                    pendingPromoteToManagerTarget = null
+                    if (res.isSuccess) {
+                        val promoted = target.copy(
+                            role = "manager",
+                            requestedRole = "manager",
+                            approvalStatus = StaffApprovalStatus.APPROVED,
+                            approvedByName = StaffAccountRepository.OWNER_FULL_NAME
+                        )
+                        StaffAccountRepository.saveAccountToLocalRegistry(context, promoted)
+                        onLocalRegistryUpdated()
+                        onOwnerCreatedManager(promoted, promoted.secretPin.ifBlank { "1234" })
+                        actionFeedbackMessage = "تم اعتماد وتفعيل ملف المدير المستقل «${target.fullName}» بواسطة المالك Deffas antar ✓"
+                    } else {
+                        actionFeedbackMessage = "تعذر التحديث: ${res.exceptionOrNull()?.localizedMessage}"
+                    }
+                }
+            }
+        )
+    }
+
+    editingPermissionsTarget?.let { target ->
+        StaffPermissionsEditorDialog(
+            staff = target,
+            isCallerOwner = isCallerOwner,
+            onDismiss = { editingPermissionsTarget = null },
+            onSave = { updatedRole, updatedStatus, updatedPerms, ownerSecret ->
+                scope.launch {
+                    val res = repository.approveOrUpdateStaffAccount(
+                        targetAccount = target,
+                        newApprovalStatus = updatedStatus,
+                        newRole = updatedRole,
+                        permissions = updatedPerms,
+                        managerName = myAccount.fullName,
+                        isCallerOwner = isCallerOwner,
+                        ownerSecretCode = ownerSecret,
+                        callerAccount = myAccount
+                    )
+                    if (res.isSuccess) {
+                        val updatedLocal = target.copy(
+                            role = updatedRole,
+                            approvalStatus = updatedStatus,
+                            canMakeSales = updatedPerms.canMakeSales,
+                            canManageInventory = updatedPerms.canManageInventory,
+                            canEditPrices = updatedPerms.canEditPrices,
+                            canViewReports = updatedPerms.canViewReports,
+                            canManageDebtsAndCustomers = updatedPerms.canManageDebtsAndCustomers,
+                            canRefundOrVoid = updatedPerms.canRefundOrVoid,
+                            canApplyDiscounts = updatedPerms.canApplyDiscounts,
+                            canViewCostPrices = updatedPerms.canViewCostPrices,
+                            canExportData = updatedPerms.canExportData,
+                            canManagePurchaseInvoices = updatedPerms.canManagePurchaseInvoices
+                        )
+                        StaffAccountRepository.saveAccountToLocalRegistry(context, updatedLocal)
+                        onLocalRegistryUpdated()
+                        onOwnerCreatedManager(updatedLocal, updatedLocal.secretPin.ifBlank { "1234" })
+                        editingPermissionsTarget = null
+                        actionFeedbackMessage = "تم حفظ صلاحيات وحالة حساب «${target.fullName}» بنجاح ✓"
+                    } else {
+                        actionFeedbackMessage = "تعذر حفظ الصلاحيات: ${res.exceptionOrNull()?.localizedMessage}"
+                    }
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun CreateManagerByOwnerDialog(
+    onDismiss: () -> Unit,
+    onCreateManager: (
+        fullName: String,
+        email: String,
+        phone: String,
+        branchName: String,
+        managerPin: String,
+        ownerSecretCode: String,
+        permissions: WorkerPermissions
+    ) -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+    var managerName by rememberSaveable { mutableStateOf("") }
+    var managerEmail by rememberSaveable { mutableStateOf("") }
+    var managerPhone by rememberSaveable { mutableStateOf("") }
+    var managerBranchName by rememberSaveable { mutableStateOf("فرع مستقل") }
+    var managerLocalPin by rememberSaveable { mutableStateOf("1234") }
+    var ownerSecretCode by rememberSaveable { mutableStateOf("") }
+    var showSecret by rememberSaveable { mutableStateOf(false) }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    var canMakeSales by rememberSaveable { mutableStateOf(true) }
+    var canManageInventory by rememberSaveable { mutableStateOf(true) }
+    var canEditPrices by rememberSaveable { mutableStateOf(true) }
+    var canViewReports by rememberSaveable { mutableStateOf(true) }
+    var canManageDebtsAndCustomers by rememberSaveable { mutableStateOf(true) }
+    var canRefundOrVoid by rememberSaveable { mutableStateOf(true) }
+    var canApplyDiscounts by rememberSaveable { mutableStateOf(true) }
+    var canViewCostPrices by rememberSaveable { mutableStateOf(true) }
+    var canExportData by rememberSaveable { mutableStateOf(true) }
+    var canManagePurchaseInvoices by rememberSaveable { mutableStateOf(true) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.2.dp, semantic.profitGreen.copy(alpha = 0.6f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("create_manager_by_owner_dialog")
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = semantic.profitGreen.copy(alpha = 0.16f),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.AdminPanelSettings,
+                                contentDescription = null,
+                                tint = semantic.profitGreen,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "إنشاء ملف مدير مستقل جديد (خاص بالمالك)",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 15.5.sp
+                        )
+                        Text(
+                            text = "المالك: ${StaffAccountRepository.OWNER_FULL_NAME} • المدير المستقل يدير عماله التابعين له فقط",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                OutlinedTextField(
+                    value = managerName,
+                    onValueChange = {
+                        managerName = it
+                        localError = null
+                    },
+                    label = { Text("الاسم الكامل للمدير المستقل") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("new_manager_fullname_input")
+                )
+
+                OutlinedTextField(
+                    value = managerBranchName,
+                    onValueChange = {
+                        managerBranchName = it
+                        localError = null
+                    },
+                    label = { Text("اسم الفرع أو القسم المستقل للمدير") },
+                    leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("new_manager_branch_input")
+                )
+
+                OutlinedTextField(
+                    value = managerEmail,
+                    onValueChange = {
+                        managerEmail = it
+                        localError = null
+                    },
+                    label = { Text("البريد الإلكتروني للمدير (Google أو اسم الدخول)") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("new_manager_email_input")
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = managerPhone,
+                        onValueChange = { managerPhone = it },
+                        label = { Text("رقم الهاتف") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("new_manager_phone_input")
+                    )
+
+                    OutlinedTextField(
+                        value = managerLocalPin,
+                        onValueChange = { managerLocalPin = it },
+                        label = { Text("الرمز السري للمدير") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(0.9f)
+                            .testTag("new_manager_pin_input")
+                    )
+                }
+
+                // Owner Secret Code Verification Field
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "تأكيد الرمز السري للمالك (Deffas antar):",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.sp
+                        )
+                        OutlinedTextField(
+                            value = ownerSecretCode,
+                            onValueChange = {
+                                ownerSecretCode = it
+                                localError = null
+                            },
+                            label = { Text("أدخل الرمز السري للمالك لتأكيد إنشاء المدير المستقل") },
+                            leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                            trailingIcon = {
+                                IconButton(onClick = { showSecret = !showSecret }) {
+                                    Icon(
+                                        imageVector = if (showSecret) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = "إظهار/إخفاء الرمز السري"
+                                    )
+                                }
+                            },
+                            visualTransformation = if (showSecret) VisualTransformation.None else PasswordVisualTransformation(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("create_manager_owner_secret_input")
+                        )
+                    }
+                }
+
+                Text("صلاحيات ملف المدير المستقل:", fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                PermissionToggleRow("إصدار فواتير البيع في الكاشير", canMakeSales) { canMakeSales = it }
+                PermissionToggleRow("إضافة وتعديل أصناف المخزون", canManageInventory) { canManageInventory = it }
+                PermissionToggleRow("تعديل أسعار البيع في الفاتورة", canEditPrices) { canEditPrices = it }
+                PermissionToggleRow("إدارة حسابات العملاء والديون", canManageDebtsAndCustomers) { canManageDebtsAndCustomers = it }
+                PermissionToggleRow("منح الخصومات للعملاء", canApplyDiscounts) { canApplyDiscounts = it }
+                PermissionToggleRow("عمل مرتجعات أو إلغاء الفواتير", canRefundOrVoid) { canRefundOrVoid = it }
+                PermissionToggleRow("عرض التقارير المالية والأرباح", canViewReports) { canViewReports = it }
+                PermissionToggleRow("رؤية أسعار الشراء والتكلفة", canViewCostPrices) { canViewCostPrices = it }
+                PermissionToggleRow("تصدير ملفات PDF والنسخ الاحتياطي", canExportData) { canExportData = it }
+                PermissionToggleRow("تسجيل فواتير المشتريات والموردين", canManagePurchaseInvoices) { canManagePurchaseInvoices = it }
+
+                if (!localError.isNullOrBlank()) {
+                    Text(
+                        text = localError.orEmpty(),
+                        color = semantic.dangerRed,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("إلغاء")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            when {
+                                managerName.trim().length < 2 -> {
+                                    localError = "يرجى إدخال الاسم الكامل للمدير المستقل"
+                                }
+                                !managerEmail.contains("@") || managerEmail.trim().length < 5 -> {
+                                    localError = "يرجى إدخال البريد الإلكتروني الصحيح للمدير"
+                                }
+                                managerLocalPin.trim().length < 4 -> {
+                                    localError = "يرجى تعيين رمز سري للمدير لا يقل عن 4 خانات"
+                                }
+                                !StaffAccountRepository.verifyOwnerSecretCode(ownerSecretCode) -> {
+                                    localError = "الرمز السري للمالك (Deffas antar) غير صحيح! لا يمكن إنشاء ملف مدير مستقل."
+                                }
+                                else -> {
+                                    onCreateManager(
+                                        managerName.trim(),
+                                        managerEmail.trim(),
+                                        managerPhone.trim(),
+                                        managerBranchName.trim().ifBlank { "فرع مستقل" },
+                                        managerLocalPin.trim(),
+                                        ownerSecretCode.trim(),
+                                        WorkerPermissions(
+                                            canMakeSales = canMakeSales,
+                                            canManageInventory = canManageInventory,
+                                            canEditPrices = canEditPrices,
+                                            canViewReports = canViewReports,
+                                            canManageDebtsAndCustomers = canManageDebtsAndCustomers,
+                                            canRefundOrVoid = canRefundOrVoid,
+                                            canApplyDiscounts = canApplyDiscounts,
+                                            canViewCostPrices = canViewCostPrices,
+                                            canExportData = canExportData,
+                                            canManagePurchaseInvoices = canManagePurchaseInvoices
+                                        )
+                                    )
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = semantic.profitGreen,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.testTag("confirm_create_manager_btn")
+                    ) {
+                        Text("إنشاء واعتماد ملف المدير المستقل", fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CreateAffiliatedWorkerByManagerDialog(
+    callerAccount: StaffAccount,
+    availableManagers: List<StaffAccount>,
+    onDismiss: () -> Unit,
+    onCreateWorker: (
+        targetManager: StaffAccount,
+        workerName: String,
+        workerEmail: String,
+        workerPhone: String,
+        workerPin: String,
+        permissions: WorkerPermissions
+    ) -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+    var workerName by rememberSaveable { mutableStateOf("") }
+    var workerEmail by rememberSaveable { mutableStateOf("") }
+    var workerPhone by rememberSaveable { mutableStateOf("") }
+    var workerPin by rememberSaveable { mutableStateOf("1234") }
+    var selectedParentManagerUid by rememberSaveable {
+        mutableStateOf(
+            if (callerAccount.isOwner && availableManagers.isNotEmpty()) {
+                availableManagers.first().userId
+            } else {
+                callerAccount.userId
+            }
+        )
+    }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    var canMakeSales by rememberSaveable { mutableStateOf(true) }
+    var canManageInventory by rememberSaveable { mutableStateOf(true) }
+    var canEditPrices by rememberSaveable { mutableStateOf(false) }
+    var canViewReports by rememberSaveable { mutableStateOf(false) }
+    var canManageDebtsAndCustomers by rememberSaveable { mutableStateOf(true) }
+    var canRefundOrVoid by rememberSaveable { mutableStateOf(false) }
+    var canApplyDiscounts by rememberSaveable { mutableStateOf(true) }
+    var canViewCostPrices by rememberSaveable { mutableStateOf(false) }
+    var canExportData by rememberSaveable { mutableStateOf(false) }
+    var canManagePurchaseInvoices by rememberSaveable { mutableStateOf(false) }
+
+    val resolvedTargetManager = remember(callerAccount, availableManagers, selectedParentManagerUid) {
+        if (!callerAccount.isOwner) {
+            callerAccount
+        } else {
+            availableManagers.firstOrNull { it.userId == selectedParentManagerUid } ?: callerAccount
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("create_worker_by_manager_dialog")
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "إنشاء حساب عامل مبيعات تابع للمدير",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 15.5.sp
+                        )
+                        Text(
+                            text = "المدير المشرف: ${resolvedTargetManager.fullName} (${resolvedTargetManager.branchName.ifBlank { "AF store" }})",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                if (callerAccount.isOwner && availableManagers.isNotEmpty()) {
+                    Text(
+                        text = "اختر ملف المدير المستقل الذي يتبع له هذا العامل:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        availableManagers.forEach { mgr ->
+                            FilterChip(
+                                selected = selectedParentManagerUid == mgr.userId,
+                                onClick = { selectedParentManagerUid = mgr.userId },
+                                label = {
+                                    Text(
+                                        text = "${mgr.fullName} (${mgr.branchName.ifBlank { "فرع مستقل" }})",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            )
+                        }
+                        FilterChip(
+                            selected = selectedParentManagerUid == callerAccount.userId,
+                            onClick = { selectedParentManagerUid = callerAccount.userId },
+                            label = {
+                                Text(
+                                    text = "إشراف المالك المباشر (Deffas antar)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = workerName,
+                    onValueChange = {
+                        workerName = it
+                        localError = null
+                    },
+                    label = { Text("الاسم الكامل للعامل التابع") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("new_worker_fullname_input")
+                )
+
+                OutlinedTextField(
+                    value = workerEmail,
+                    onValueChange = {
+                        workerEmail = it
+                        localError = null
+                    },
+                    label = { Text("البريد الإلكتروني أو اسم الدخول للعامل (مثال: cashier1@afstore.com)") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("new_worker_email_input")
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = workerPhone,
+                        onValueChange = { workerPhone = it },
+                        label = { Text("رقم الهاتف") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("new_worker_phone_input")
+                    )
+
+                    OutlinedTextField(
+                        value = workerPin,
+                        onValueChange = {
+                            workerPin = it
+                            localError = null
+                        },
+                        label = { Text("الرمز السري للعامل") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(0.9f)
+                            .testTag("new_worker_pin_input")
+                    )
+                }
+
+                Text("صلاحيات العامل التابع في الكاشير والمخزون:", fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                PermissionToggleRow("إصدار فواتير البيع في الكاشير", canMakeSales) { canMakeSales = it }
+                PermissionToggleRow("إضافة وتعديل أصناف المخزون", canManageInventory) { canManageInventory = it }
+                PermissionToggleRow("تعديل أسعار البيع في الفاتورة", canEditPrices) { canEditPrices = it }
+                PermissionToggleRow("إدارة حسابات العملاء والديون", canManageDebtsAndCustomers) { canManageDebtsAndCustomers = it }
+                PermissionToggleRow("منح الخصومات للعملاء", canApplyDiscounts) { canApplyDiscounts = it }
+                PermissionToggleRow("عمل مرتجعات أو إلغاء الفواتير", canRefundOrVoid) { canRefundOrVoid = it }
+                PermissionToggleRow("عرض التقارير المالية والأرباح", canViewReports) { canViewReports = it }
+                PermissionToggleRow("رؤية أسعار الشراء والتكلفة", canViewCostPrices) { canViewCostPrices = it }
+                PermissionToggleRow("تصدير ملفات PDF والنسخ الاحتياطي", canExportData) { canExportData = it }
+                PermissionToggleRow("تسجيل فواتير المشتريات والموردين", canManagePurchaseInvoices) { canManagePurchaseInvoices = it }
+
+                if (!localError.isNullOrBlank()) {
+                    Text(
+                        text = localError.orEmpty(),
+                        color = semantic.dangerRed,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("إلغاء")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val normalizedEmail = if (workerEmail.trim().isNotBlank() && !workerEmail.contains("@")) {
+                                "${workerEmail.trim()}@afstore.com"
+                            } else {
+                                workerEmail.trim()
+                            }
+                            when {
+                                workerName.trim().length < 2 -> {
+                                    localError = "يرجى إدخال الاسم الكامل للعامل التابع"
+                                }
+                                normalizedEmail.length < 5 || !normalizedEmail.contains("@") -> {
+                                    localError = "يرجى إدخال البريد الإلكتروني أو معرّف الدخول للعامل"
+                                }
+                                workerPin.trim().length < 4 -> {
+                                    localError = "يرجى تعيين رمز سري للعامل لا يقل عن 4 خانات"
+                                }
+                                else -> {
+                                    onCreateWorker(
+                                        resolvedTargetManager,
+                                        workerName.trim(),
+                                        normalizedEmail,
+                                        workerPhone.trim(),
+                                        workerPin.trim(),
+                                        WorkerPermissions(
+                                            canMakeSales = canMakeSales,
+                                            canManageInventory = canManageInventory,
+                                            canEditPrices = canEditPrices,
+                                            canViewReports = canViewReports,
+                                            canManageDebtsAndCustomers = canManageDebtsAndCustomers,
+                                            canRefundOrVoid = canRefundOrVoid,
+                                            canApplyDiscounts = canApplyDiscounts,
+                                            canViewCostPrices = canViewCostPrices,
+                                            canExportData = canExportData,
+                                            canManagePurchaseInvoices = canManagePurchaseInvoices
+                                        )
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.testTag("confirm_create_worker_btn")
+                    ) {
+                        Text("إنشاء وتفعيل حساب العامل التابع", fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OwnerSecretVerificationDialog(
+    title: String,
+    subtitle: String,
+    onDismiss: () -> Unit,
+    onVerified: (String) -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+    var secretInput by rememberSaveable { mutableStateOf("") }
+    var showSecret by rememberSaveable { mutableStateOf(false) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("owner_secret_verification_dialog")
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Key,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = title,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.5.sp
+                    )
+                }
+
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = secretInput,
+                    onValueChange = {
+                        secretInput = it
+                        errorMsg = null
+                    },
+                    label = { Text("الرمز السري للمالك (Deffas antar)") },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    trailingIcon = {
+                        IconButton(onClick = { showSecret = !showSecret }) {
+                            Icon(
+                                imageVector = if (showSecret) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = "إظهار/إخفاء الرمز السري"
+                            )
+                        }
+                    },
+                    visualTransformation = if (showSecret) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("verify_owner_secret_input")
+                )
+
+                if (!errorMsg.isNullOrBlank()) {
+                    Text(
+                        text = errorMsg.orEmpty(),
+                        color = semantic.dangerRed,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("إلغاء")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (StaffAccountRepository.verifyOwnerSecretCode(secretInput)) {
+                                onVerified(secretInput.trim())
+                            } else {
+                                errorMsg = "الرمز السري للمالك (Deffas antar) غير صحيح!"
+                            }
+                        },
+                        modifier = Modifier.testTag("confirm_owner_secret_btn")
+                    ) {
+                        Text("تأكيد الرمز السري", fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StaffAccountApprovalItemCard(
+    staff: StaffAccount,
+    affiliatedWorkersCount: Int = 0,
+    isCurrentUser: Boolean,
+    isCallerOwner: Boolean,
+    onQuickApproveAsWorker: () -> Unit,
+    onQuickApproveAsManager: () -> Unit,
+    onRejectOrSuspend: (String) -> Unit,
+    onCustomizePermissions: () -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+    val statusColor = when (staff.approvalStatus) {
+        StaffApprovalStatus.APPROVED -> semantic.profitGreen
+        StaffApprovalStatus.PENDING -> semantic.debtAmber
+        else -> semantic.dangerRed
+    }
+
+    val roleLabel = when {
+        staff.isOwner -> "مالك المتجر الأساسي (Deffas antar)"
+        staff.role == "manager" -> {
+            val branchSuffix = if (staff.branchName.isNotBlank()) " • ${staff.branchName}" else ""
+            "ملف مدير مستقل$branchSuffix ($affiliatedWorkersCount عمال تابعين)"
+        }
+        staff.requestedRole == "manager" && staff.isPending -> {
+            val branchSuffix = if (staff.branchName.isNotBlank()) " (${staff.branchName})" else ""
+            "طلب ملف مدير مستقل جديد$branchSuffix"
+        }
+        else -> {
+            val parentSuffix = if (staff.parentManagerName.isNotBlank()) " • تابع للمدير: ${staff.parentManagerName}" else ""
+            "عامل مبيعات (كاشير)$parentSuffix"
+        }
+    }
+
+    val displayDate = remember(staff.updatedAt, staff.createdAt) {
+        val ts: Timestamp? = staff.updatedAt ?: staff.createdAt
+        if (ts != null) {
+            SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(ts.toDate())
+        } else {
+            "الآن"
+        }
+    }
+
+    val animatedStatusColor by animateColorAsState(
+        targetValue = statusColor,
+        animationSpec = tween(durationMillis = 400),
+        label = "statusColorAnim"
+    )
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (staff.isPending) semantic.debtAmber else semantic.cardBorder,
+        animationSpec = tween(durationMillis = 400),
+        label = "cardBorderAnim"
+    )
+
+    val canCallerModifyTarget = isCallerOwner || (staff.role == "worker" && !staff.isOwner)
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = semantic.cardElevated),
+        border = BorderStroke(
+            width = if (staff.isPending) 1.5.dp else 1.dp,
+            color = animatedBorderColor
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("staff_account_card_${staff.userId}")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Avatar / Initial Badge
+                Surface(
+                    shape = CircleShape,
+                    color = animatedStatusColor.copy(alpha = 0.18f),
+                    border = BorderStroke(1.5.dp, animatedStatusColor),
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        val initial = staff.fullName.firstOrNull()?.uppercaseChar()?.toString() ?: "U"
+                        Text(
+                            text = initial,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.sp,
+                            color = animatedStatusColor
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = staff.fullName,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 15.sp
+                        )
+                        if (staff.isOwner) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = semantic.profitGreen.copy(alpha = 0.18f)
+                            ) {
+                                Text(
+                                    text = "المالك",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = semantic.profitGreen,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        } else if (staff.role == "manager") {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                            ) {
+                                Text(
+                                    text = "مدير مستقل",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        } else if (isCurrentUser) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                            ) {
+                                Text(
+                                    text = "أنت",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = staff.email + (if (staff.phone.isNotBlank()) " • ${staff.phone}" else ""),
+                        fontSize = 11.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "$roleLabel • $displayDate",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (staff.secretPin.isNotBlank() && !staff.isOwner) {
+                        Text(
+                            text = "الرمز السري للدخول المباشر: ${staff.secretPin}" +
+                                (if (staff.branchName.isNotBlank()) " • الفرع: ${staff.branchName}" else ""),
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = animatedStatusColor.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, animatedStatusColor.copy(alpha = 0.45f))
+                ) {
+                    AnimatedContent(
+                        targetState = staff.approvalStatus,
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.8f)) togetherWith
+                                (fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.8f))
+                        },
+                        label = "statusBadgeAnim"
+                    ) { currentStatus ->
+                        Text(
+                            text = StaffApprovalStatus.labelAr(currentStatus),
+                            color = animatedStatusColor,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            // Action Buttons for Approval & Role Management
+            if (canCallerModifyTarget && !staff.isOwner) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (!staff.isApproved || staff.role != "worker") {
+                        Button(
+                            onClick = onQuickApproveAsWorker,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = semantic.profitGreen,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier
+                                .height(36.dp)
+                                .testTag("approve_worker_btn_${staff.userId}")
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("موافقة كعامل كاشير", fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+
+                    // ONLY the Store Owner (Deffas antar) can promote/approve as Independent Manager
+                    if (isCallerOwner && (!staff.isApproved || staff.role != "manager")) {
+                        Button(
+                            onClick = onQuickApproveAsManager,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = semantic.infoBlue,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier
+                                .height(36.dp)
+                                .testTag("approve_manager_btn_${staff.userId}")
+                        ) {
+                            Icon(Icons.Default.AdminPanelSettings, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("تفعيل كملف مدير مستقل", fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = onCustomizePermissions,
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .height(36.dp)
+                            .testTag("edit_permissions_btn_${staff.userId}")
+                    ) {
+                        Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("الصلاحيات", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    if (!isCurrentUser && !StaffAccountRepository.isOwnerEmail(staff.email)) {
+                        if (staff.approvalStatus == StaffApprovalStatus.PENDING) {
+                            OutlinedButton(
+                                onClick = { onRejectOrSuspend(StaffApprovalStatus.REJECTED) },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = semantic.dangerRed),
+                                border = BorderStroke(1.dp, semantic.dangerRed.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier
+                                    .height(36.dp)
+                                    .testTag("reject_staff_btn_${staff.userId}")
+                            ) {
+                                Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("رفض الطلب", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                            }
+                        } else if (staff.approvalStatus == StaffApprovalStatus.APPROVED) {
+                            OutlinedButton(
+                                onClick = { onRejectOrSuspend(StaffApprovalStatus.SUSPENDED) },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = semantic.dangerRed),
+                                border = BorderStroke(1.dp, semantic.dangerRed.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier
+                                    .height(36.dp)
+                                    .testTag("suspend_staff_btn_${staff.userId}")
+                            ) {
+                                Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("إيقاف الدخول", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StaffPermissionsEditorDialog(
+    staff: StaffAccount,
+    isCallerOwner: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (role: String, approvalStatus: String, permissions: WorkerPermissions, ownerSecretCode: String) -> Unit
+) {
+    val semantic = LocalAFStoreSemanticColors.current
+    var selectedRole by rememberSaveable(staff.userId) { mutableStateOf(if (isCallerOwner) staff.role else "worker") }
+    var selectedStatus by rememberSaveable(staff.userId) { mutableStateOf(staff.approvalStatus) }
+    val initialPerms = remember(staff) { staff.toWorkerPermissions() }
+
+    var canMakeSales by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canMakeSales) }
+    var canManageInventory by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canManageInventory) }
+    var canEditPrices by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canEditPrices) }
+    var canViewReports by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canViewReports) }
+    var canManageDebtsAndCustomers by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canManageDebtsAndCustomers) }
+    var canRefundOrVoid by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canRefundOrVoid) }
+    var canApplyDiscounts by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canApplyDiscounts) }
+    var canViewCostPrices by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canViewCostPrices) }
+    var canExportData by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canExportData) }
+    var canManagePurchaseInvoices by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canManagePurchaseInvoices) }
+
+    var ownerSecretInput by rememberSaveable { mutableStateOf("") }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    val requiresOwnerSecret = selectedRole == "manager" || staff.role == "manager"
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "صلاحيات وحالة حساب: ${staff.fullName}",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = staff.email,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                HorizontalDivider()
+
+                Text("حالة الموافقة على الدخول:", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = selectedStatus == StaffApprovalStatus.APPROVED,
+                        onClick = { selectedStatus = StaffApprovalStatus.APPROVED },
+                        label = { Text("معتمد ✓", fontSize = 11.5.sp) }
+                    )
+                    FilterChip(
+                        selected = selectedStatus == StaffApprovalStatus.PENDING,
+                        onClick = { selectedStatus = StaffApprovalStatus.PENDING },
+                        label = { Text("معلق ⏳", fontSize = 11.5.sp) }
+                    )
+                    FilterChip(
+                        selected = selectedStatus == StaffApprovalStatus.SUSPENDED,
+                        onClick = { selectedStatus = StaffApprovalStatus.SUSPENDED },
+                        label = { Text("موقوف ⏸", fontSize = 11.5.sp) }
+                    )
+                }
+
+                if (isCallerOwner) {
+                    Text("الدور الوظيفي (خاص بالمالك Deffas antar):", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = selectedRole == "worker",
+                            onClick = { selectedRole = "worker" },
+                            label = { Text("عامل مبيعات / كاشير", fontSize = 12.sp) }
+                        )
+                        FilterChip(
+                            selected = selectedRole == "manager",
+                            onClick = { selectedRole = "manager" },
+                            label = { Text("مدير فرع معتمد", fontSize = 12.sp) }
+                        )
+                    }
+                }
+
+                if (requiresOwnerSecret && isCallerOwner) {
+                    OutlinedTextField(
+                        value = ownerSecretInput,
+                        onValueChange = {
+                            ownerSecretInput = it
+                            errorMsg = null
+                        },
+                        label = { Text("الرمز السري للمالك (Deffas antar) للتأكيد") },
+                        leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                HorizontalDivider()
+                Text("تخصيص الصلاحيات:", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                PermissionToggleRow("إصدار فواتير البيع في الكاشير", canMakeSales) { canMakeSales = it }
+                PermissionToggleRow("إضافة وتعديل أصناف المخزون", canManageInventory) { canManageInventory = it }
+                PermissionToggleRow("تعديل أسعار البيع في الفاتورة", canEditPrices) { canEditPrices = it }
+                PermissionToggleRow("إدارة حسابات العملاء والديون", canManageDebtsAndCustomers) { canManageDebtsAndCustomers = it }
+                PermissionToggleRow("منح الخصومات للعملاء", canApplyDiscounts) { canApplyDiscounts = it }
+                PermissionToggleRow("عمل مرتجعات أو إلغاء الفواتير", canRefundOrVoid) { canRefundOrVoid = it }
+                PermissionToggleRow("عرض التقارير المالية والأرباح", canViewReports) { canViewReports = it }
+                PermissionToggleRow("رؤية أسعار الشراء والتكلفة", canViewCostPrices) { canViewCostPrices = it }
+                PermissionToggleRow("تصدير ملفات PDF والنسخ الاحتياطي", canExportData) { canExportData = it }
+                PermissionToggleRow("تسجيل فواتير المشتريات والموردين", canManagePurchaseInvoices) { canManagePurchaseInvoices = it }
+
+                if (!errorMsg.isNullOrBlank()) {
+                    Text(
+                        text = errorMsg.orEmpty(),
+                        color = semantic.dangerRed,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("إلغاء")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (requiresOwnerSecret && !StaffAccountRepository.verifyOwnerSecretCode(ownerSecretInput)) {
+                                errorMsg = "يرجى إدخال الرمز السري الصحيح للمالك (Deffas antar) لتأكيد تعديل حساب المدير."
+                            } else {
+                                onSave(
+                                    selectedRole,
+                                    selectedStatus,
+                                    WorkerPermissions(
+                                        canMakeSales = canMakeSales,
+                                        canManageInventory = canManageInventory,
+                                        canEditPrices = canEditPrices,
+                                        canViewReports = canViewReports,
+                                        canManageDebtsAndCustomers = canManageDebtsAndCustomers,
+                                        canRefundOrVoid = canRefundOrVoid,
+                                        canApplyDiscounts = canApplyDiscounts,
+                                        canViewCostPrices = canViewCostPrices,
+                                        canExportData = canExportData,
+                                        canManagePurchaseInvoices = canManagePurchaseInvoices
+                                    ),
+                                    ownerSecretInput.trim()
+                                )
+                            }
+                        }
+                    ) {
+                        Text("حفظ وتطبيق فوراً", fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermissionToggleRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.5.sp,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+    }
+}
+
+/**
+ * Action button in the TopAppBar showing pending manager account requests
+ * with an alert badge for the Store Owner.
+ */
+@Composable
+fun TopBarManagerPendingRequestsButton(
+    pendingCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hasPending = pendingCount > 0
+    val badgeColor = Color(0xFFEF4444)
+
+    Box(
+        modifier = modifier
+            .padding(end = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .background(
+                if (hasPending) Color(0xFFEF4444).copy(alpha = 0.16f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            )
+            .border(
+                width = 1.dp,
+                color = if (hasPending) Color(0xFFEF4444).copy(alpha = 0.75f)
+                else MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .testTag("top_bar_manager_pending_requests_btn"),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = if (hasPending) Icons.Default.ManageAccounts else Icons.Default.PersonAdd,
+                contentDescription = "طلبات مدراء الفروع المعلقة: $pendingCount",
+                tint = if (hasPending) badgeColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(19.dp)
+            )
+            if (hasPending) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = badgeColor
+                ) {
+                    Text(
+                        text = "$pendingCount",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.5.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Interactive dialog allowing the Store Owner to review, approve, or reject
+ * manager account requests incoming from other phones via Firebase Firestore sync.
+ */
+@Composable
+fun PendingManagerRequestsDialog(
+    pendingAccounts: List<StaffAccount>,
+    repository: StaffAccountRepository,
+    onDismiss: () -> Unit,
+    onAccountApproved: (StaffAccount) -> Unit = {},
+    onAccountRejected: (StaffAccount) -> Unit = {}
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val semantic = LocalAFStoreSemanticColors.current
+    var processingAccountId by remember { mutableStateOf<String?>(null) }
+    var actionFeedbackMessage by remember { mutableStateOf<String?>(null) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 500.dp)
+                .testTag("pending_manager_requests_dialog")
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFEF4444).copy(alpha = 0.15f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ManageAccounts,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .size(24.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "طلبات مدراء الفروع 🔔",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 17.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "مزامنة سحابية فورية بين الهواتف",
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                    }
+                }
+
+                if (!actionFeedbackMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = semantic.profitGreen.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, semantic.profitGreen.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = actionFeedbackMessage.orEmpty(),
+                            color = semantic.profitGreen,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (pendingAccounts.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = semantic.profitGreen,
+                                modifier = Modifier.size(46.dp)
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "لا توجد طلبات معلقة جديدة حالياً",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = "جميع حسابات المدراء والفروع معتمدة ومفعّلة بنجاح ✓",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "الطلبات المعلقة (${pendingAccounts.size}):",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    pendingAccounts.forEach { acc ->
+                        Card(
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 5.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = acc.fullName.ifBlank { "مدير بدون اسم" },
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 14.sp
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFF59E0B).copy(alpha = 0.18f),
+                                        border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.6f))
+                                    ) {
+                                        Text(
+                                            text = "بانتظار الموافقة ⏳",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFD97706),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "الفرع: ${acc.branchName.ifBlank { "فرع مستقل" }}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "البريد: ${acc.email} • الهاتف: ${acc.phone.ifBlank { "غير مسجل" }}",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                val isProcessing = processingAccountId == acc.userId
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            processingAccountId = acc.userId
+                                            coroutineScope.launch {
+                                                val res = repository.approvePendingManagerRequest(acc)
+                                                if (res.isSuccess) {
+                                                    val approved = res.getOrThrow()
+                                                    actionFeedbackMessage = "تم قبول المدير «${approved.fullName}» بنجاح! يمكنه الآن الدخول من أي هاتف."
+                                                    onAccountApproved(approved)
+                                                } else {
+                                                    actionFeedbackMessage = "فشل قبول الطلب: ${res.exceptionOrNull()?.localizedMessage}"
+                                                }
+                                                processingAccountId = null
+                                            }
+                                        },
+                                        enabled = !isProcessing,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = semantic.profitGreen,
+                                            contentColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        if (isProcessing) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                color = Color.White,
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else {
+                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("قبول وتفعيل كامل الصلاحيات", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            processingAccountId = acc.userId
+                                            coroutineScope.launch {
+                                                val res = repository.rejectPendingManagerRequest(acc)
+                                                if (res.isSuccess) {
+                                                    actionFeedbackMessage = "تم رفض طلب المدير «${acc.fullName}»."
+                                                    onAccountRejected(acc)
+                                                }
+                                                processingAccountId = null
+                                            }
+                                        },
+                                        enabled = !isProcessing,
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = semantic.dangerRed
+                                        ),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(15.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("رفض", fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("إغلاق", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
