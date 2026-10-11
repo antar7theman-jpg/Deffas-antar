@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
@@ -925,7 +926,8 @@ fun AFStoreMainApp(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .statusBarsPadding()
-                        .padding(top = 60.dp, start = 12.dp, end = 12.dp)
+                        .padding(top = 60.dp, start = 12.dp, end = 12.dp, bottom = 24.dp)
+                        .navigationBarsPadding()
                         .width(285.dp)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -935,6 +937,7 @@ fun AFStoreMainApp(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
                             .padding(vertical = 6.dp)
                     ) {
                         Column(

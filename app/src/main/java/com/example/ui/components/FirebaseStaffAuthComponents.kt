@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.ScrollableTabRow
@@ -31,7 +35,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -88,6 +95,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -865,6 +874,7 @@ private fun DirectVerifiedOwnerSessionGate(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FirebaseStaffSignInScreen(
     storeName: String,
@@ -889,6 +899,7 @@ private fun FirebaseStaffSignInScreen(
     var showSecretPassword by rememberSaveable { mutableStateOf(false) }
     var showRegisterManagerDialog by rememberSaveable { mutableStateOf(false) }
     var showLoginFieldsInfoDialog by rememberSaveable { mutableStateOf(false) }
+    var showConnectionSheet by rememberSaveable { mutableStateOf(false) }
     var isDirectAuthenticating by remember { mutableStateOf(false) }
     var terminatedSessionNotice by remember {
         mutableStateOf(StaffAccountRepository.getAndClearTerminatedSessionReason(context))
@@ -898,235 +909,119 @@ private fun FirebaseStaffSignInScreen(
         StaffAccountRepository.isOwnerEmail(loginIdentifierInput)
     }
 
+    val connectionSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars,
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = if (semantic.isDark) Color(0xFF0B1120) else Color(0xFFF1F5F9)
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 24.dp),
             contentAlignment = Alignment.Center
         ) {
             Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = semantic.cardElevated),
-                border = BorderStroke(1.2.dp, semantic.cardBorder),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (semantic.isDark) Color(0xFF1E293B) else Color.White
+                ),
+                border = BorderStroke(
+                    width = 1.2.dp,
+                    color = if (semantic.isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+                ),
                 elevation = CardDefaults.cardElevation(defaultElevation = if (semantic.isDark) 0.dp else 6.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 540.dp)
+                    .widthIn(max = 440.dp)
                     .testTag("firebase_sign_in_card")
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp),
+                        .padding(horizontal = 24.dp, vertical = 28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // 1. Elegant Top Connectivity Status Strip
+                    // 1. Top Logo Badge (Rounded mint square with teal border)
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isOnline) {
-                            semantic.profitContainer.copy(alpha = 0.55f)
-                        } else {
-                            semantic.debtContainer.copy(alpha = 0.85f)
-                        },
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (semantic.isDark) Color(0xFF064E3B).copy(alpha = 0.35f) else Color(0xFFE8F6F3),
                         border = BorderStroke(
-                            width = 1.dp,
-                            color = if (isOnline) semantic.profitGreen.copy(alpha = 0.5f) else semantic.debtAmber.copy(alpha = 0.65f)
+                            width = 1.6.dp,
+                            color = Color(0xFF0D9488)
                         ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("network_connectivity_status_strip")
+                        modifier = Modifier.size(92.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 9.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(9.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isOnline) semantic.profitGreen else semantic.debtAmber)
-                                )
-                                Icon(
-                                    imageVector = if (isOnline) Icons.Default.CloudDone else Icons.Default.CloudOff,
-                                    contentDescription = null,
-                                    tint = if (isOnline) semantic.profitGreen else semantic.debtAmber,
-                                    modifier = Modifier.size(19.dp)
-                                )
-                                Column {
-                                    Text(
-                                        text = if (isOnline) "حالة الاتصال: متصل بالإنترنت" else "حالة الاتصال: غير متصل (Offline)",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 12.sp,
-                                        color = if (isOnline) semantic.profitGreen else semantic.debtAmber
-                                    )
-                                    Text(
-                                        text = if (isOnline) {
-                                            "المزامنة السحابية فورية ومفعلة مع خوادم Firebase"
-                                        } else {
-                                            "يعمل التطبيق استناداً للبيانات المخزنة محلياً على هذا الجهاز"
-                                        },
-                                        fontSize = 10.5.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isOnline) semantic.profitGreen.copy(alpha = 0.18f) else semantic.debtAmber.copy(alpha = 0.2f)
-                            ) {
-                                Text(
-                                    text = if (isOnline) "نشط سحابياً ✓" else "محلي فقط ⚡",
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = if (isOnline) semantic.profitGreen else semantic.debtAmber,
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                                )
-                            }
+                            AFStoreHeaderLogo(
+                                isActive = true,
+                                badgeSize = 84.dp
+                            )
                         }
                     }
 
-                    // 2. Explanatory Notice Card for Offline Manager Login
-                    AnimatedVisibility(visible = !isOnline) {
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = semantic.debtContainer.copy(alpha = 0.9f),
-                            border = BorderStroke(1.2.dp, semantic.debtAmber.copy(alpha = 0.7f)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("offline_manager_notice_card")
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = semantic.debtAmber.copy(alpha = 0.22f),
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = Icons.Default.CloudOff,
-                                                contentDescription = "دون اتصال",
-                                                tint = semantic.debtAmber,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "تنبيه تسجيل الدخول دون اتصال (وضع Offline)",
-                                            fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 13.sp,
-                                            color = semantic.debtAmber
-                                        )
-                                        Text(
-                                            text = "إشعار هام لمديري الفروع والمسؤولين",
-                                            fontSize = 10.5.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-
-                                Text(
-                                    text = "أنت الآن في وضع عدم الاتصال بالشبكة. سيتم منح حق الدخول للمدير بالاعتماد كلياً على البيانات والصلاحيات المحفوظة محلياً على هذا الجهاز، مما يضمن استمرارية البيع والعمل دون انقطاع.",
-                                    fontSize = 11.5.sp,
-                                    lineHeight = 17.5.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-                                    border = BorderStroke(0.8.dp, semantic.debtAmber.copy(alpha = 0.4f))
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 10.dp, vertical = 7.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(7.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Info,
-                                            contentDescription = null,
-                                            tint = semantic.debtAmber,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text(
-                                            text = "ستتم المزامنة السحابية لكافة العمليات وإعادة التحقق التلقائي فور توفر اتصال بالإنترنت.",
-                                            fontSize = 10.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                    // 2. App Name & Description matching screenshot
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Af store",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 32.sp,
+                            color = if (semantic.isDark) Color(0xFF34D399) else Color(0xFF00875A),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "نظام إدارة المبيعات والمخزون ونقاط البيع والفواتير",
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 13.5.sp,
+                            color = if (semantic.isDark) Color(0xFF94A3B8) else Color(0xFF334155),
+                            textAlign = TextAlign.Center
+                        )
                     }
 
-                    AFStoreHeaderLogo(isActive = true, badgeSize = 58.dp)
+                    // 3. Subtle Horizontal Divider
+                    HorizontalDivider(
+                        color = if (semantic.isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
 
+                    // Error & Success Banners if present
                     AnimatedVisibility(visible = terminatedSessionNotice != null) {
                         Surface(
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = semantic.dangerContainer.copy(alpha = 0.85f),
-                            border = BorderStroke(1.2.dp, semantic.dangerRed.copy(alpha = 0.6f)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("concurrent_login_terminated_notice_banner")
+                            border = BorderStroke(1.dp, semantic.dangerRed.copy(alpha = 0.6f)),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
+                                    .padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.WarningAmber,
                                     contentDescription = null,
                                     tint = semantic.dangerRed,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "تنبيه أمان: تسجيل دخول متزامن",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 12.5.sp,
-                                        color = semantic.dangerRed
-                                    )
-                                    Text(
-                                        text = terminatedSessionNotice.orEmpty(),
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                                IconButton(onClick = { terminatedSessionNotice = null }, modifier = Modifier.size(28.dp)) {
+                                Text(
+                                    text = terminatedSessionNotice.orEmpty(),
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = { terminatedSessionNotice = null }, modifier = Modifier.size(24.dp)) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = "إغلاق",
@@ -1138,68 +1033,36 @@ private fun FirebaseStaffSignInScreen(
                         }
                     }
 
-                    Text(
-                        text = storeName,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 22.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
-                    )
-
-                    // Remember Me & Keep Session Open (DataStore)
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (keepSessionOpen) {
-                            semantic.profitGreen.copy(alpha = 0.14f)
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        },
-                        border = BorderStroke(
-                            width = 1.2.dp,
-                            color = if (keepSessionOpen) semantic.profitGreen.copy(alpha = 0.65f) else MaterialTheme.colorScheme.outlineVariant
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onKeepSessionOpenChange(!keepSessionOpen) }
-                            .testTag("keep_session_open_toggle_card")
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                    AnimatedVisibility(visible = errorMessage != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = semantic.dangerRed.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, semantic.dangerRed.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = if (keepSessionOpen) Icons.Default.Security else Icons.Default.LockPerson,
-                                    contentDescription = null,
-                                    tint = if (keepSessionOpen) semantic.profitGreen else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
+                                Text(
+                                    text = errorMessage.orEmpty(),
+                                    color = semantic.dangerRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
                                 )
-                                Column {
-                                    Text(
-                                        text = "تذكرني (Remember Me) • بقاء الجلسة مفتوحة دائماً",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 12.5.sp,
-                                        color = if (keepSessionOpen) semantic.profitGreen else MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "حفظ بيانات الاعتماد بـ DataStore لمنع تسجيل الخروج والدخول المباشر للتطبيق",
-                                        fontSize = 10.5.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                IconButton(onClick = onClearError, modifier = Modifier.size(24.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "إغلاق",
+                                        tint = semantic.dangerRed,
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
-                            Switch(
-                                checked = keepSessionOpen,
-                                onCheckedChange = onKeepSessionOpenChange,
-                                modifier = Modifier.testTag("keep_session_open_switch")
-                            )
                         }
                     }
 
@@ -1213,7 +1076,7 @@ private fun FirebaseStaffSignInScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
+                                    .padding(10.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -1224,7 +1087,7 @@ private fun FirebaseStaffSignInScreen(
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.weight(1f)
                                 )
-                                IconButton(onClick = onClearError, modifier = Modifier.size(28.dp)) {
+                                IconButton(onClick = onClearError, modifier = Modifier.size(24.dp)) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = "إغلاق",
@@ -1236,491 +1099,463 @@ private fun FirebaseStaffSignInScreen(
                         }
                     }
 
-                    AnimatedVisibility(visible = errorMessage != null) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = semantic.dangerRed.copy(alpha = 0.14f),
-                            border = BorderStroke(1.dp, semantic.dangerRed.copy(alpha = 0.5f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = errorMessage.orEmpty(),
-                                    color = semantic.dangerRed,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                IconButton(onClick = onClearError, modifier = Modifier.size(28.dp)) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "إغلاق",
-                                        tint = semantic.dangerRed,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // 1. Primary Google Sign-In via Firebase Auth + Credential Manager
-                    GoogleSignInButton(
-                        onAuthSuccess = onAuthSuccess,
-                        onAuthError = onAuthError
-                    )
-
-                    // 2. Button to Create Independent Manager Profile from Login Screen
-                    OutlinedButton(
-                        onClick = { showRegisterManagerDialog = true },
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("open_register_independent_manager_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PersonAdd,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(19.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "إنشاء ملف مدير مستقل جديد (يدير عماله التابعين له)",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 12.5.sp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-
-                    // 3. Direct Login Card (Name or Email + Password / PIN)
+                    // 4. Welcome Container
                     Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.38f),
-                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("owner_direct_login_section")
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (semantic.isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (semantic.isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                .padding(vertical = 16.dp, horizontal = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "مرحباً بك في منظومة المتجر",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = if (semantic.isDark) Color.White else Color(0xFF0F172A),
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "يرجى تحديد الإجراء المناسب للمتابعة:",
+                                fontSize = 13.sp,
+                                color = if (semantic.isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    // 5. Blue Connection Button
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFF2563EB),
+                        shadowElevation = 4.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showConnectionSheet = true }
+                            .testTag("welcome_connection_button")
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp, horizontal = 20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Key,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Column {
-                                        Text(
-                                            text = "تسجيل الدخول (بالاسم أو البريد الإلكتروني)",
-                                            fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 13.sp,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "أدخل الاسم أو البريد مع الرقم السري",
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    if (isEnteredEmailOwner) {
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = semantic.profitGreen.copy(alpha = 0.16f),
-                                            border = BorderStroke(1.dp, semantic.profitGreen.copy(alpha = 0.5f))
-                                        ) {
-                                            Text(
-                                                text = "المطور والمالك ✓",
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = semantic.profitGreen,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
-                                        }
-                                    }
-
-                                    IconButton(
-                                        onClick = { showLoginFieldsInfoDialog = true },
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Info,
-                                            contentDescription = "شرح وتفصيل الخانات",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = "Connection",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 19.sp,
+                                    color = Color.White
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Key,
+                                    contentDescription = "تسجيل الدخول",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
                             }
-
-                            // Interactive Guidance Hint Box
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Info,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "إيضاح: يمكنك تسجيل الدخول باسم المطور (Deffas antar) أو بالبريد (Antar7theman@gmail.com) مع الرقم السري (Antar19930716).",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        lineHeight = 15.sp
-                                    )
-                                }
-                            }
-
-                            // Quick Fill Developer Credentials Shortcut
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        loginIdentifierInput = StaffAccountRepository.OWNER_FULL_NAME
-                                        loginSecretInput = StaffAccountRepository.OWNER_SECRET_CODE
-                                    }
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Text(
-                                            text = "⚡",
-                                            fontSize = 12.sp
-                                        )
-                                        Text(
-                                            text = "تعبئة سريعة لبيانات المطور (${StaffAccountRepository.OWNER_FULL_NAME})",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    Text(
-                                        text = "تعبئة تلقائية",
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            // 1. Identifier Field (Name or Email) with Semantic Icons & Quick Clear
-                            OutlinedTextField(
-                                value = loginIdentifierInput,
-                                onValueChange = { loginIdentifierInput = it },
-                                label = { Text("الاسم أو البريد الإلكتروني") },
-                                placeholder = { Text("مثال: Deffas antar أو Antar7theman@gmail.com") },
-                                supportingText = {
-                                    Text(
-                                        text = "اكتب اسمك الكامل، اسم المستخدم، أو البريد الإلكتروني المعتمد في الحساب.",
-                                        fontSize = 10.5.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                leadingIcon = {
-                                    val idIcon = when {
-                                        isEnteredEmailOwner -> Icons.Default.AdminPanelSettings
-                                        loginIdentifierInput.contains("@") -> Icons.Default.Email
-                                        else -> Icons.Default.Person
-                                    }
-                                    Icon(
-                                        imageVector = idIcon,
-                                        contentDescription = "أيقونة نوع المعرف",
-                                        tint = if (isEnteredEmailOwner) semantic.profitGreen else MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                },
-                                trailingIcon = {
-                                    if (loginIdentifierInput.isNotEmpty()) {
-                                        IconButton(
-                                            onClick = { loginIdentifierInput = "" },
-                                            modifier = Modifier.testTag("clear_identifier_btn")
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "مسح اسم الحساب",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(19.dp)
-                                            )
-                                        }
-                                    }
-                                },
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("owner_email_login_input")
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = "إذا كان لديك حساب مسجل بالفعل",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color.White.copy(alpha = 0.92f)
                             )
+                        }
+                    }
 
-                            // 2. Secret / Password Field with Key Icon, Quick Clear & Visibility Toggle
-                            OutlinedTextField(
-                                value = loginSecretInput,
-                                onValueChange = { loginSecretInput = it },
-                                label = { Text("الرقم السري / كلمة المرور") },
-                                placeholder = { Text("Antar19930716") },
-                                supportingText = {
-                                    Text(
-                                        text = "الرمز السري الخاص بالمطور (Antar19930716) أو رمز PIN للمدير / العامل.",
-                                        fontSize = 10.5.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Key,
-                                        contentDescription = "رمز الدخول السري",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                },
-                                trailingIcon = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(end = 4.dp)
-                                    ) {
-                                        if (loginSecretInput.isNotEmpty()) {
-                                            IconButton(
-                                                onClick = { loginSecretInput = "" },
-                                                modifier = Modifier.testTag("clear_secret_btn")
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Close,
-                                                    contentDescription = "مسح الرمز السري",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(19.dp)
-                                                )
-                                            }
-                                        }
-                                        IconButton(
-                                            onClick = { showSecretPassword = !showSecretPassword },
-                                            modifier = Modifier.testTag("toggle_password_visibility_btn")
-                                        ) {
-                                            Icon(
-                                                imageVector = if (showSecretPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                                contentDescription = if (showSecretPassword) "إخفاء الرمز السري" else "إظهار الرمز السري",
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-                                },
-                                visualTransformation = if (showSecretPassword) {
-                                    VisualTransformation.None
-                                } else {
-                                    PasswordVisualTransformation()
-                                },
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("owner_secret_login_input")
-                            )
-
-                            // 3. Verification Progress Banner During Active Authentication
-                            AnimatedVisibility(visible = isDirectAuthenticating) {
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-                                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("login_verification_progress_banner")
-                                ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(14.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                modifier = Modifier.weight(1f)
-                                            ) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(18.dp),
-                                                    strokeWidth = 2.2.dp,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                                Text(
-                                                    text = "جاري فحص وتوثيق الصلاحيات عبر فايربيس...",
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp,
-                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                                )
-                                            }
-                                            Surface(
-                                                shape = RoundedCornerShape(6.dp),
-                                                color = if (isOnline) semantic.profitGreen.copy(alpha = 0.2f) else semantic.debtAmber.copy(alpha = 0.2f)
-                                            ) {
-                                                Text(
-                                                    text = if (isOnline) "سحابي (Firestore)" else "محلي (Cache)",
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isOnline) semantic.profitGreen else semantic.debtAmber,
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        }
-
-                                        LinearProgressIndicator(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(5.dp)
-                                                .clip(RoundedCornerShape(3.dp)),
-                                            color = MaterialTheme.colorScheme.primary,
-                                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                            strokeCap = StrokeCap.Round
-                                        )
-
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(
-                                                text = "الحساب: $loginIdentifierInput",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = if (isEnteredEmailOwner) "رتبة: مالك رئيسي ✓" else "مطابقة الصلاحيات والتراخيص",
-                                                fontSize = 10.5.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Button(
-                                onClick = {
-                                    isDirectAuthenticating = true
-                                    coroutineScope.launch {
-                                        try {
-                                            val result = StaffAccountRepository.authenticateStaffLoginWithCloud(
-                                                context = context,
-                                                emailOrUsername = loginIdentifierInput,
-                                                secretPinOrCode = loginSecretInput
-                                            )
-                                            if (result.isSuccess) {
-                                                onDirectStaffVerified(result.getOrThrow(), loginIdentifierInput, loginSecretInput)
-                                            } else {
-                                                onAuthError(
-                                                    result.exceptionOrNull()?.localizedMessage
-                                                        ?: "بيانات الدخول غير صحيحة!"
-                                                )
-                                            }
-                                        } catch (e: Exception) {
-                                            onAuthError(e.localizedMessage ?: "حدث خطأ أثناء فحص الحساب سحابياً")
-                                        } finally {
-                                            isDirectAuthenticating = false
-                                        }
-                                    }
-                                },
-                                enabled = !isDirectAuthenticating,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isOnline) semantic.profitGreen else semantic.debtAmber,
-                                    contentColor = Color.White
-                                ),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .testTag("owner_direct_login_btn")
+                    // 6. Purple "فتح حساب" Button
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFF7C3AED),
+                        shadowElevation = 4.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showRegisterManagerDialog = true }
+                            .testTag("welcome_register_account_button")
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp, horizontal = 20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                if (isDirectAuthenticating) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(19.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = if (isOnline) {
-                                            "جاري التحقق من بيانات الحساب سحابياً..."
-                                        } else {
-                                            "جاري التحقق والاعتماد على البيانات المحلية..."
-                                        },
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.5.sp
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = if (isEnteredEmailOwner) Icons.Default.AdminPanelSettings else if (isOnline) Icons.Default.CheckCircle else Icons.Default.CloudOff,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = if (isEnteredEmailOwner) {
-                                            "دخول المطور والمالك (Deffas antar)"
-                                        } else if (!isOnline) {
-                                            "دخول بالبيانات المحلية (Offline)"
-                                        } else {
-                                            "تسجيل الدخول"
-                                        },
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 13.sp
-                                    )
-                                }
+                                Text(
+                                    text = "فتح حساب",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 19.sp,
+                                    color = Color.White
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.PersonAdd,
+                                    contentDescription = "فتح حساب جديد",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = "إرسال طلب فتح حساب جديد لمالك المتجر",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color.White.copy(alpha = 0.92f)
+                            )
+                        }
+                    }
+
+                    // 7. Bottom Status Box
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (semantic.isDark) Color(0xFF064E3B).copy(alpha = 0.25f) else Color(0xFFF0FDF4),
+                        border = BorderStroke(
+                            width = 1.2.dp,
+                            color = if (semantic.isDark) Color(0xFF059669) else Color(0xFF10B981)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("welcome_sync_status_box")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 13.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "AF store v2.0",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (semantic.isDark) Color(0xFFCBD5E1) else Color(0xFF1E293B)
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(7.dp)
+                            ) {
+                                Text(
+                                    text = if (isOnline) "المزامنة السحابية متصلة" else "وضع العمل محلياً (غير متصل)",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isOnline) {
+                                        if (semantic.isDark) Color(0xFF34D399) else Color(0xFF047857)
+                                    } else {
+                                        if (semantic.isDark) Color(0xFFFBBF24) else Color(0xFFB45309)
+                                    }
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isOnline) Color(0xFF10B981) else Color(0xFFF59E0B))
+                                )
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showConnectionSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showConnectionSheet = false },
+            sheetState = connectionSheetState,
+            containerColor = semantic.cardElevated,
+            dragHandle = {
+                Surface(
+                    shape = RoundedCornerShape(3.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    modifier = Modifier
+                        .padding(top = 12.dp, bottom = 8.dp)
+                        .size(width = 38.dp, height = 4.dp)
+                ) {}
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Key,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "تسجيل الدخول (Connection)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(onClick = { showConnectionSheet = false }, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "إغلاق",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Quick Developer Credentials Fill
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            loginIdentifierInput = StaffAccountRepository.OWNER_FULL_NAME
+                            loginSecretInput = StaffAccountRepository.OWNER_SECRET_CODE
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("⚡", fontSize = 13.sp)
+                            Text(
+                                text = "تعبئة سريعة للمطور (${StaffAccountRepository.OWNER_FULL_NAME})",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Text(
+                            text = "تلقائي",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Identifier Input
+                OutlinedTextField(
+                    value = loginIdentifierInput,
+                    onValueChange = { loginIdentifierInput = it },
+                    label = { Text("الاسم أو البريد الإلكتروني") },
+                    placeholder = { Text("مثال: Deffas antar أو البريد") },
+                    leadingIcon = {
+                        val icon = if (isEnteredEmailOwner) Icons.Default.AdminPanelSettings else Icons.Default.Person
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = if (isEnteredEmailOwner) semantic.profitGreen else MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingIcon = {
+                        if (loginIdentifierInput.isNotEmpty()) {
+                            IconButton(onClick = { loginIdentifierInput = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "مسح",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("owner_email_login_input")
+                )
+
+                // Password / Secret Input
+                OutlinedTextField(
+                    value = loginSecretInput,
+                    onValueChange = { loginSecretInput = it },
+                    label = { Text("الرقم السري / كلمة المرور") },
+                    placeholder = { Text("Antar19930716") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Key,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingIcon = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (loginSecretInput.isNotEmpty()) {
+                                IconButton(onClick = { loginSecretInput = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "مسح",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { showSecretPassword = !showSecretPassword }) {
+                                Icon(
+                                    imageVector = if (showSecretPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    },
+                    visualTransformation = if (showSecretPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("owner_secret_login_input")
+                )
+
+                // Direct Login Button
+                Button(
+                    onClick = {
+                        isDirectAuthenticating = true
+                        coroutineScope.launch {
+                            try {
+                                val result = StaffAccountRepository.authenticateStaffLoginWithCloud(
+                                    context = context,
+                                    emailOrUsername = loginIdentifierInput,
+                                    secretPinOrCode = loginSecretInput
+                                )
+                                if (result.isSuccess) {
+                                    showConnectionSheet = false
+                                    onDirectStaffVerified(result.getOrThrow(), loginIdentifierInput, loginSecretInput)
+                                } else {
+                                    onAuthError(
+                                        result.exceptionOrNull()?.localizedMessage
+                                            ?: "بيانات الدخول غير صحيحة!"
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                onAuthError(e.localizedMessage ?: "حدث خطأ أثناء فحص الحساب سحابياً")
+                            } finally {
+                                isDirectAuthenticating = false
+                            }
+                        }
+                    },
+                    enabled = !isDirectAuthenticating,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2563EB),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("owner_direct_login_btn")
+                ) {
+                    if (isDirectAuthenticating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("جاري التحقق والدخول...", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    } else {
+                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(19.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isEnteredEmailOwner) "دخول المطور والمالك (Deffas antar)" else "تسجيل الدخول",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                // Primary Google Sign-In via Firebase Auth + Credential Manager
+                GoogleSignInButton(
+                    onAuthSuccess = {
+                        showConnectionSheet = false
+                        onAuthSuccess()
+                    },
+                    onAuthError = onAuthError
+                )
+
+                // Remember Me toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "تذكرني وبقاء الجلسة مفتوحة",
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Switch(
+                        checked = keepSessionOpen,
+                        onCheckedChange = onKeepSessionOpenChange,
+                        modifier = Modifier.testTag("keep_session_open_switch")
+                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "ليس لديك حساب بعد؟ ",
+                        fontSize = 12.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(
+                        onClick = {
+                            showConnectionSheet = false
+                            showRegisterManagerDialog = true
+                        }
+                    ) {
+                        Text(
+                            text = "فتح حساب جديد",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF7C3AED)
+                        )
                     }
                 }
             }
@@ -1949,6 +1784,7 @@ private fun LoginFieldsExplanationDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RegisterIndependentManagerFromLoginDialog(
     onDismiss: () -> Unit,
@@ -1963,234 +1799,447 @@ private fun RegisterIndependentManagerFromLoginDialog(
 ) {
     val semantic = LocalAFStoreSemanticColors.current
     var fullName by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
+    var branchName by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
-    var branchName by rememberSaveable { mutableStateOf("فرع مستقل") }
+    var email by rememberSaveable { mutableStateOf("") }
     var managerPin by rememberSaveable { mutableStateOf("") }
+    var confirmPin by rememberSaveable { mutableStateOf("") }
     var ownerSecret by rememberSaveable { mutableStateOf("") }
     var showPasswords by rememberSaveable { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = {
+            Surface(
+                modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(2.dp)
+            ) {
+                Box(modifier = Modifier.size(width = 38.dp, height = 4.dp))
+            }
+        }
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("register_independent_manager_dialog")
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 22.dp, vertical = 12.dp)
+                .navigationBarsPadding()
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFF7C3AED),
+                        shadowElevation = 2.dp
+                    ) {
+                        Box(
+                            modifier = Modifier.size(44.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Column {
+                        Text(
+                            text = "فتح حساب جديد",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "إنشاء ملف مدير مستقل لمنظومة المتجر",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "إغلاق",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Info Card
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "يتيح لك ملف المدير المستقل إدارة المتجر، إعداد الفروع، وإضافة حسابات العمال والمبيعات برمز سري مستقل.",
+                        fontSize = 11.5.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+
+            HorizontalDivider()
+
+            // 1. Full Name
+            OutlinedTextField(
+                value = fullName,
+                onValueChange = {
+                    fullName = it
+                    localError = null
+                },
+                label = { Text("الاسم الكامل للمدير") },
+                placeholder = { Text("مثال: عبد الرحيم أحمد") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                trailingIcon = {
+                    if (fullName.isNotEmpty()) {
+                        IconButton(onClick = { fullName = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "مسح الاسم", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = "إنشاء ملف مدير مستقل جديد",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "يتيح لك ملف المدير المستقل إدارة فرعك وإنشاء حسابات العمال التابعين لك برمز سري وصلاحيات مخصصة.",
-                    fontSize = 11.5.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    .testTag("ind_mgr_fullname_input")
+            )
 
-                HorizontalDivider()
-
-                OutlinedTextField(
-                    value = fullName,
-                    onValueChange = {
-                        fullName = it
-                        localError = null
-                    },
-                    label = { Text("الاسم الكامل للمدير المستقل") },
-                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    trailingIcon = {
-                        if (fullName.isNotEmpty()) {
-                            IconButton(onClick = { fullName = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "مسح الاسم", modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("ind_mgr_fullname_input")
-                )
-
-                OutlinedTextField(
-                    value = branchName,
-                    onValueChange = {
-                        branchName = it
-                        localError = null
-                    },
-                    label = { Text("اسم الفرع أو القسم المستقل للمدير") },
-                    leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    trailingIcon = {
-                        if (branchName.isNotEmpty()) {
-                            IconButton(onClick = { branchName = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "مسح اسم الفرع", modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("ind_mgr_branch_input")
-                )
-
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = {
-                        email = it
-                        localError = null
-                    },
-                    label = { Text("البريد الإلكتروني للمدير (لدخول Google أو الرمز السري)") },
-                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    trailingIcon = {
-                        if (email.isNotEmpty()) {
-                            IconButton(onClick = { email = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "مسح البريد الإلكتروني", modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("ind_mgr_email_input")
-                )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        label = { Text("رقم الهاتف") },
-                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("ind_mgr_phone_input")
+            // 2. Store / Branch Name
+            OutlinedTextField(
+                value = branchName,
+                onValueChange = {
+                    branchName = it
+                    localError = null
+                },
+                label = { Text("اسم المتجر أو الفرع المستقل") },
+                placeholder = { Text("مثال: فرع الصنوبر / متجر الأناقة") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Badge,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
                     )
-
-                    OutlinedTextField(
-                        value = managerPin,
-                        onValueChange = {
-                            managerPin = it
-                            localError = null
-                        },
-                        label = { Text("رمز PIN") },
-                        leadingIcon = { Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
-                        trailingIcon = {
-                            IconButton(onClick = { showPasswords = !showPasswords }) {
-                                Icon(
-                                    imageVector = if (showPasswords) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showPasswords) "إخفاء الرمز السري" else "إظهار الرمز السري",
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        },
-                        visualTransformation = if (showPasswords) VisualTransformation.None else PasswordVisualTransformation(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("ind_mgr_pin_input")
-                    )
-                }
-
-                OutlinedTextField(
-                    value = ownerSecret,
-                    onValueChange = {
-                        ownerSecret = it
-                        localError = null
-                    },
-                    label = { Text("الرمز السري للمالك للتفعيل الفوري (اختياري)") },
-                    supportingText = {
-                        Text(
-                            "أدخل رمز المالك (Deffas antar) للتفعيل والدخول فوراً، أو اتركه فارغاً لإرسال طلب تفعيل للمالك.",
-                            fontSize = 10.5.sp
-                        )
-                    },
-                    leadingIcon = { Icon(Icons.Default.LockPerson, contentDescription = null, tint = semantic.profitGreen) },
-                    trailingIcon = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (ownerSecret.isNotEmpty()) {
-                                IconButton(onClick = { ownerSecret = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "مسح رمز المالك", modifier = Modifier.size(18.dp))
-                                }
-                            }
-                            IconButton(onClick = { showPasswords = !showPasswords }) {
-                                Icon(
-                                    imageVector = if (showPasswords) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showPasswords) "إخفاء الرمز" else "إظهار الرمز",
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                },
+                trailingIcon = {
+                    if (branchName.isNotEmpty()) {
+                        IconButton(onClick = { branchName = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "مسح اسم الفرع", modifier = Modifier.size(18.dp))
                         }
-                    },
-                    visualTransformation = if (showPasswords) VisualTransformation.None else PasswordVisualTransformation(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("ind_mgr_owner_secret_input")
-                )
-
-                if (!localError.isNullOrBlank()) {
-                    Text(
-                        text = localError.orEmpty(),
-                        color = semantic.dangerRed,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("إلغاء")
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            when {
-                                fullName.trim().length < 2 -> localError = "يرجى إدخال اسم المدير المستقل"
-                                !email.contains("@") || email.trim().length < 5 -> localError = "يرجى إدخال بريد إلكتروني صحيح"
-                                managerPin.trim().length < 4 -> localError = "يرجى تعيين رمز سري للمدير (4 خانات على الأقل)"
-                                ownerSecret.isNotBlank() && !StaffAccountRepository.verifyOwnerSecretCode(ownerSecret) -> {
-                                    localError = "الرمز السري للمالك (Deffas antar) غير صحيح!"
-                                }
-                                else -> {
-                                    onSubmit(
-                                        fullName.trim(),
-                                        email.trim(),
-                                        phone.trim(),
-                                        branchName.trim().ifBlank { "فرع مستقل" },
-                                        managerPin.trim(),
-                                        ownerSecret.trim()
-                                    )
-                                }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("ind_mgr_branch_input")
+            )
+
+            // 3. Phone Number
+            OutlinedTextField(
+                value = phone,
+                onValueChange = {
+                    phone = it
+                    localError = null
+                },
+                label = { Text("رقم الهاتف للتواصل") },
+                placeholder = { Text("06xxxxxxxx") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                trailingIcon = {
+                    if (phone.isNotEmpty()) {
+                        IconButton(onClick = { phone = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "مسح الهاتف", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("ind_mgr_phone_input")
+            )
+
+            // 4. Email
+            OutlinedTextField(
+                value = email,
+                onValueChange = {
+                    email = it
+                    localError = null
+                },
+                label = { Text("البريد الإلكتروني") },
+                placeholder = { Text("name@example.com") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                trailingIcon = {
+                    if (email.isNotEmpty()) {
+                        IconButton(onClick = { email = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "مسح البريد", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("ind_mgr_email_input")
+            )
+
+            // 5. Manager PIN / Password
+            OutlinedTextField(
+                value = managerPin,
+                onValueChange = {
+                    managerPin = it
+                    localError = null
+                },
+                label = { Text("تعيين رمز PIN السري (كلمة المرور)") },
+                supportingText = {
+                    Text("4 خانات على الأقل لتسجيل دخولك للنظام", fontSize = 11.sp)
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Key,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                trailingIcon = {
+                    IconButton(onClick = { showPasswords = !showPasswords }) {
+                        Icon(
+                            imageVector = if (showPasswords) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (showPasswords) "إخفاء الرمز" else "إظهار الرمز",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                },
+                visualTransformation = if (showPasswords) VisualTransformation.None else PasswordVisualTransformation(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("ind_mgr_pin_input")
+            )
+
+            // 6. Confirm Manager PIN
+            OutlinedTextField(
+                value = confirmPin,
+                onValueChange = {
+                    confirmPin = it
+                    localError = null
+                },
+                label = { Text("تأكيد رمز PIN السري") },
+                supportingText = {
+                    Text("أعد إدخال الرمز السري للتأكيد والتثبيت", fontSize = 11.sp)
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = if (confirmPin.isNotEmpty() && confirmPin == managerPin) semantic.profitGreen else MaterialTheme.colorScheme.primary
+                    )
+                },
+                trailingIcon = {
+                    IconButton(onClick = { showPasswords = !showPasswords }) {
+                        Icon(
+                            imageVector = if (showPasswords) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (showPasswords) "إخفاء الرمز" else "إظهار الرمز",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                },
+                visualTransformation = if (showPasswords) VisualTransformation.None else PasswordVisualTransformation(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("ind_mgr_confirm_pin_input")
+            )
+
+            // 7. Optional Owner Secret Code
+            OutlinedTextField(
+                value = ownerSecret,
+                onValueChange = {
+                    ownerSecret = it
+                    localError = null
+                },
+                label = { Text("الرمز السري للمالك للتفعيل الفوري (اختياري)") },
+                supportingText = {
+                    Text(
+                        "أدخل رمز المالك (Deffas antar) للتفعيل والدخول فوراً، أو اتركه فارغاً لإرسال طلب تفعيل للمالك.",
+                        fontSize = 10.5.sp
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.LockPerson,
+                        contentDescription = null,
+                        tint = semantic.profitGreen
+                    )
+                },
+                trailingIcon = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (ownerSecret.isNotEmpty()) {
+                            IconButton(onClick = { ownerSecret = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "مسح رمز المالك", modifier = Modifier.size(18.dp))
                             }
-                        },
-                        modifier = Modifier.testTag("confirm_register_independent_manager_btn")
+                        }
+                        IconButton(onClick = { showPasswords = !showPasswords }) {
+                            Icon(
+                                imageVector = if (showPasswords) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showPasswords) "إخفاء الرمز" else "إظهار الرمز",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                },
+                visualTransformation = if (showPasswords) VisualTransformation.None else PasswordVisualTransformation(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("ind_mgr_owner_secret_input")
+            )
+
+            if (!localError.isNullOrBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = semantic.dangerRed.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, semantic.dangerRed.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.WarningAmber,
+                            contentDescription = null,
+                            tint = semantic.dangerRed,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Text(
-                            text = if (ownerSecret.isNotBlank()) "إنشاء وتفعيل ودخول فوري" else "إنشاء ملف المدير وإرسال للمالك",
-                            fontWeight = FontWeight.ExtraBold
+                            text = localError.orEmpty(),
+                            color = semantic.dangerRed,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Action Buttons
+            Button(
+                onClick = {
+                    when {
+                        fullName.trim().length < 2 -> localError = "يرجى إدخال اسم المدير المستقل"
+                        branchName.trim().isEmpty() -> localError = "يرجى إدخال اسم المتجر أو الفرع المستقل"
+                        !email.contains("@") || email.trim().length < 5 -> localError = "يرجى إدخال بريد إلكتروني صحيح"
+                        managerPin.trim().length < 4 -> localError = "يرجى تعيين رمز سري للمدير (4 خانات على الأقل)"
+                        confirmPin.isNotEmpty() && confirmPin.trim() != managerPin.trim() -> {
+                            localError = "رمز PIN غير متطابق مع التأكيد! يرجى التحقق"
+                        }
+                        ownerSecret.isNotBlank() && !StaffAccountRepository.verifyOwnerSecretCode(ownerSecret) -> {
+                            localError = "الرمز السري للمالك (Deffas antar) غير صحيح!"
+                        }
+                        else -> {
+                            onSubmit(
+                                fullName.trim(),
+                                email.trim(),
+                                phone.trim(),
+                                branchName.trim().ifBlank { "متجر مستقل" },
+                                managerPin.trim(),
+                                ownerSecret.trim()
+                            )
+                        }
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF7C3AED),
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .testTag("confirm_register_independent_manager_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (ownerSecret.isNotBlank()) "إنشاء وتفعيل ودخول فوري ✓" else "تأكيد وفتح الحساب (إرسال للمالك)",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "إلغاء والعودة",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
