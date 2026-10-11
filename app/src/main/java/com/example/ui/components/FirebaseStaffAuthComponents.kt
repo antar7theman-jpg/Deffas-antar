@@ -20,9 +20,12 @@ import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -945,28 +948,33 @@ private fun FirebaseStaffSignInScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // 1. Top Logo Badge (Rounded mint square with teal border)
+                    // 1. Top Logo Badge with official dark background and cyan accent
                     Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = if (semantic.isDark) Color(0xFF064E3B).copy(alpha = 0.35f) else Color(0xFFE8F6F3),
+                        shape = RoundedCornerShape(22.dp),
+                        color = Color(0xFF111828),
                         border = BorderStroke(
-                            width = 1.6.dp,
-                            color = Color(0xFF0D9488)
+                            width = 1.8.dp,
+                            color = if (semantic.isDark) Color(0xFF18E1F7) else Color(0xFF0284C7)
                         ),
-                        modifier = Modifier.size(92.dp)
+                        shadowElevation = 6.dp,
+                        modifier = Modifier.size(96.dp)
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            AFStoreHeaderLogo(
-                                isActive = true,
-                                badgeSize = 84.dp
+                            Image(
+                                painter = painterResource(id = R.drawable.af_store_logo),
+                                contentDescription = "شعار Af store الرسمي",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(20.dp))
                             )
                         }
                     }
 
-                    // 2. App Name & Description matching screenshot
+                    // 2. App Name & Description matching official brand
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -975,7 +983,7 @@ private fun FirebaseStaffSignInScreen(
                             text = "Af store",
                             fontWeight = FontWeight.Bold,
                             fontSize = 32.sp,
-                            color = if (semantic.isDark) Color(0xFF34D399) else Color(0xFF00875A),
+                            color = if (semantic.isDark) Color(0xFF38BDF8) else Color(0xFF0284C7),
                             textAlign = TextAlign.Center
                         )
                         Text(

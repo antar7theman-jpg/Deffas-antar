@@ -22,11 +22,13 @@ import kotlinx.coroutines.tasks.await
  * يدعم الاستعلامات لكل مستخدم مستنداً إلى UID الحساب المسجل (users/{userId}/products).
  */
 class FirestoreProductDaoImpl(
-    private val db: FirebaseFirestore
+    private val db: FirebaseFirestore,
+    private val context: Context? = null
 ) : FirestoreProductDao {
 
     constructor(context: Context) : this(
-        com.example.data.firebase.StaffAccountRepository.getFirestoreDb(context)
+        com.example.data.firebase.StaffAccountRepository.getFirestoreDb(context),
+        context
     )
 
     private val auth = Firebase.auth
@@ -36,8 +38,26 @@ class FirestoreProductDaoImpl(
             ?: throw IllegalStateException("يجب تسجيل الدخول أولاً للوصول إلى قاعدة بيانات Firestore.")
     }
 
+    private fun getTargetUserId(): String {
+        val authUid = auth.currentUser?.uid ?: ""
+        if (context != null) {
+            val session = com.example.data.firebase.StaffAccountRepository.loadPersistentStaffSession(context)
+            if (session != null) {
+                // If worker and has parentManagerUid, use parentManagerUid
+                if (session.role.equals("worker", ignoreCase = true) && session.parentManagerUid.isNotBlank()) {
+                    return session.parentManagerUid
+                }
+                // If manager or owner, use session.userId
+                if (session.userId.isNotBlank() && !session.userId.startsWith("saved_session")) {
+                    return session.userId
+                }
+            }
+        }
+        return authUid.ifBlank { requireUserId() }
+    }
+
     private fun getUserProductsCollection() =
-        db.collection("users").document(requireUserId()).collection("products")
+        db.collection("users").document(getTargetUserId()).collection("products")
 
     override fun observeAllProducts(): Flow<List<Product>> = flow {
         val productsRef = getUserProductsCollection()

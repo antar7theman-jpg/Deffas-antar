@@ -16,8 +16,10 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
@@ -496,7 +498,7 @@ fun AFStoreMainApp(
                                                     MaterialTheme.colorScheme.outlineVariant
                                                 }
                                             ),
-                                            modifier = Modifier.offset(y = (-6).dp)
+                                             modifier = Modifier.offset(y = (-9).dp)
                                         ) {
                                             Box(
                                                 contentAlignment = Alignment.Center,
@@ -518,7 +520,7 @@ fun AFStoreMainApp(
                                             maxLines = 1,
                                             softWrap = false,
                                             overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.offset(y = (-4).dp)
+                                            modifier = Modifier.offset(y = (-6).dp)
                                         )
                                     },
                                     colors = NavigationBarItemDefaults.colors(
@@ -1610,21 +1612,12 @@ fun AFStoreHeaderLogo(
     logoCustomText: String = ""
 ) {
     val semantic = LocalAFStoreSemanticColors.current
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
-    val bgColor = if (semantic.isDark) {
-        Color(0xFF0B1120)
-    } else {
-        primaryColor.copy(alpha = 0.14f)
-    }
+    val bgColor = Color(0xFF111828)
     val borderColor = when {
-        isActive -> primaryColor
-        semantic.isDark -> Color(0xFF334155)
-        else -> primaryColor.copy(alpha = 0.75f)
+        isActive -> Color(0xFF18E1F7)
+        semantic.isDark -> Color(0xFF00B4D8)
+        else -> Color(0xFF0284C7)
     }
-    val strokePrimary = if (semantic.isDark) Color(0xFF00B4D8) else primaryColor
-    val strokeSecondary = if (semantic.isDark) Color(0xFF38BDF8) else secondaryColor
-    val labelColor = if (semantic.isDark) Color.White else Color(0xFF0F172A)
 
     val resolvedLogoModel = remember(logoImagePath) {
         ProductImageStorageHelper.resolveImageModel(logoImagePath)
@@ -1658,7 +1651,7 @@ fun AFStoreHeaderLogo(
             ) {
                 Text(
                     text = cleanCustomText.take(10),
-                    color = labelColor,
+                    color = Color.White,
                     fontSize = if (cleanCustomText.length <= 4) 11.sp else 8.sp,
                     fontWeight = FontWeight.ExtraBold,
                     textAlign = TextAlign.Center,
@@ -1668,53 +1661,14 @@ fun AFStoreHeaderLogo(
                 )
             }
         } else {
-            Column(
+            Image(
+                painter = painterResource(id = R.drawable.af_store_logo),
+                contentDescription = "شعار Af Store الرسمي",
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Canvas(
-                    modifier = Modifier
-                        .width(badgeSize * 0.6f)
-                        .height(badgeSize * 0.45f)
-                ) {
-                    val strokeStyle = Stroke(
-                        width = 2.2.dp.toPx(),
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
-                    )
-                    val pathA = Path().apply {
-                        moveTo(size.width * 0.12f, size.height * 0.90f)
-                        lineTo(size.width * 0.42f, size.height * 0.12f)
-                        lineTo(size.width * 0.65f, size.height * 0.90f)
-                    }
-                    drawPath(pathA, color = strokePrimary, style = strokeStyle)
-                    drawLine(
-                        color = strokeSecondary,
-                        start = Offset(size.width * 0.24f, size.height * 0.62f),
-                        end = Offset(size.width * 0.85f, size.height * 0.62f),
-                        strokeWidth = 2.dp.toPx(),
-                        cap = StrokeCap.Round
-                    )
-                    drawLine(
-                        color = strokeSecondary,
-                        start = Offset(size.width * 0.52f, size.height * 0.15f),
-                        end = Offset(size.width * 0.90f, size.height * 0.15f),
-                        strokeWidth = 2.dp.toPx(),
-                        cap = StrokeCap.Round
-                    )
-                }
-                Spacer(modifier = Modifier.height(1.dp))
-                Text(
-                    text = "AF STORE",
-                    color = labelColor,
-                    fontSize = 6.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1
-                )
-            }
+                    .clip(RoundedCornerShape(11.dp))
+            )
         }
     }
 }
