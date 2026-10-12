@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidLocation(data) {
+      return data.lat is float && 
+             data.lng is float && 
+             data.timestamp is int;
+    }
+
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+    }
+
+    match /users/{userId}/location_history/{locationId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidLocation(request.resource.data);
+    }
+  }
+}

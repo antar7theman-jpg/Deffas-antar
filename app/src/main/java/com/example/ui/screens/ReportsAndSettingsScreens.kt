@@ -2952,7 +2952,7 @@ private fun ThemeStudioSettingsCard(
                     val modeIcon = when (mode) {
                         AppThemeMode.LIGHT -> Icons.Default.LightMode
                         AppThemeMode.DARK -> Icons.Default.DarkMode
-                        AppThemeMode.OLED_BLACK -> Icons.Default.NightsStay
+                        AppThemeMode.OLED, AppThemeMode.OLED_BLACK -> Icons.Default.NightsStay
                         AppThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
                     }
                     Surface(

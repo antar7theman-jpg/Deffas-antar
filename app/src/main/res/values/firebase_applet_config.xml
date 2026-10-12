@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <resources>
-    <string name="firestore_database_id" translatable="false">ai-studio-android-014403fe-424c-40cd-a958-b10641b631a0</string>
-    <string name="google_app_id" translatable="false">1:264866368935:android:wkyzp123456789</string>
-    <string name="google_api_key" translatable="false">AIzaSyDummyKeyForAppletEnvironment12345</string>
-    <string name="project_id" translatable="false">af-store-applet</string>
-    <string name="gcm_defaultSenderId" translatable="false">264866368935</string>
-    <string name="default_web_client_id" translatable="false">264866368935-dummy.apps.googleusercontent.com</string>
+    <string name="firestore_database_id" translatable="false">ai-studio-android-afstore-4ff25c0c-7ac6-4498-bab4-8d02df1d5811</string>
 </resources>

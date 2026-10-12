@@ -179,19 +179,19 @@ data class SalesTimeBucket(
 }
 
 data class PeriodOverviewSummary(
-    val totalSales: Double,
-    val netProfit: Double,
-    val cashSales: Double,
-    val transferSales: Double,
-    val debtSales: Double,
-    val totalTransactions: Int,
-    val totalUnitsSold: Int,
-    val todaySales: Double,
-    val yesterdaySales: Double,
-    val todayNetProfit: Double,
-    val currentMonthSales: Double,
-    val previousMonthSales: Double,
-    val currentMonthNetProfit: Double
+    val totalSales: Double = 0.0,
+    val netProfit: Double = 0.0,
+    val cashSales: Double = 0.0,
+    val transferSales: Double = 0.0,
+    val debtSales: Double = 0.0,
+    val totalTransactions: Int = 0,
+    val totalUnitsSold: Int = 0,
+    val todaySales: Double = 0.0,
+    val yesterdaySales: Double = 0.0,
+    val todayNetProfit: Double = 0.0,
+    val currentMonthSales: Double = 0.0,
+    val previousMonthSales: Double = 0.0,
+    val currentMonthNetProfit: Double = 0.0
 )
 
 @Composable

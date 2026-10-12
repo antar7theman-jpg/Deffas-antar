@@ -1,31 +1,35 @@
-# Implementation Plan - Comprehensive App Performance & Frame Rate Optimization
+# Hide Google Sign-In Button
 
-Goal: Optimize frame rates, UI responsiveness, scrolling smoothness, and background synchronization across the entire application (POS, inventory, live dashboard, reports, debts, offline sync).
+Remove or hide the Google Sign-In button from the staff/owner authentication screen as requested, preserving all other app features and behavior.
 
-## User Review Required
+## User Review & Critical Decisions
+
 > [!IMPORTANT]
-> This plan covers a comprehensive performance overhaul across all screens, including LazyColumn list stabilization, Coil memory caching, recomposition reduction using `derivedStateOf` and `remember`, and Firestore offline query optimization.
+> The Google Sign-In button on the login screen will be removed cleanly.
 
-## Proposed Changes
+- **Confirmed Decision**: Remove the Google Sign-In button block entirely from `FirebaseStaffAuthComponents.kt`.
 
-### 1. Jetpack Compose UI & List Optimization
-- **LazyColumn / LazyRow Stabilization**:
-  - Add explicit `key` parameters to all list items across POS, Inventory, Debts, Customers, and Live Dashboard.
-  - Ensure items use stable data classes or stable IDs so Compose skips unnecessary recompositions.
-- **Recomposition Reduction (`derivedStateOf` & `remember`)**:
-  - Wrap complex filtering, search queries, and scroll-position computations in `derivedStateOf` and `remember`.
-  - Extract heavy calculations out of composable scopes into ViewModels or memoized states.
-- **Modifier Optimization**:
-  - Avoid lambda allocations inside loops and frequently changing modifiers where possible.
+## 1. Overview & Core Concept
 
-### 2. Image Loading & Memory Performance (Coil)
-- Configure optimal memory cache size and disk cache policies for Coil image loaders (product images, avatars).
-- Enable crossfade and bitmap config optimizations to prevent UI jank during rapid list scrolling.
+- **What It Does**: Hides/removes the Google sign-in option from the login screen.
+- **Key Value**: Streamlines the login interface to match user preferences without touching other functionalities.
 
-### 3. Database & Offline Sync Performance (Firestore & Local Caching)
-- Optimize Firestore offline persistence query batching and snapshot listeners to avoid redundant network reads and main-thread blocking.
-- Streamline local state updates so offline sales, inventory changes, and manager/worker notifications process instantly without frame drops.
+## 2. User Experience & Visual Design
 
-## Verification Plan
-- Run `compile_applet` to verify compilation and syntax correctness.
-- Test app navigation and scrolling responsiveness.
+- **Login Screen**: The green "Sign in with Google" button is removed, leaving standard email/password login and direct login options intact with consistent spacing.
+
+## 3. Key Product Decisions & Trade-Offs
+
+- **Decision**: Completely remove the button and associated callback invocation from the UI layout.
+- **Why**: Directly satisfies the user request while keeping credential manager code intact if needed, or safely cleaning up the specific view block.
+
+## 4. Technical Architecture & Data Strategy
+
+```
+┌──────────────────────────────────────────┐
+│      FirebaseStaffSignInScreen           │
+│  - Direct login / Email login            │
+│  - [Google Sign-In Button REMOVED]       │
+│  - Register new account link             │
+└──────────────────────────────────────────┘
+```

@@ -1265,7 +1265,7 @@ fun AFStoreMainApp(
                                 val modeIcon = when (mode) {
                                     AppThemeMode.LIGHT -> Icons.Default.LightMode
                                     AppThemeMode.DARK -> Icons.Default.DarkMode
-                                    AppThemeMode.OLED_BLACK -> Icons.Default.NightsStay
+                                    AppThemeMode.OLED, AppThemeMode.OLED_BLACK -> Icons.Default.NightsStay
                                     AppThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
                                 }
                                 Surface(
@@ -1497,13 +1497,13 @@ private fun TopBarThemeQuickSwitcher(
     val activeIcon = when (themeMode) {
         AppThemeMode.LIGHT -> Icons.Default.LightMode
         AppThemeMode.DARK -> Icons.Default.DarkMode
-        AppThemeMode.OLED_BLACK -> Icons.Default.NightsStay
+        AppThemeMode.OLED, AppThemeMode.OLED_BLACK -> Icons.Default.NightsStay
         AppThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
     }
     val iconTint = when (themeMode) {
         AppThemeMode.LIGHT -> Color(0xFFD97706)
         AppThemeMode.DARK -> Color(0xFF38BDF8)
-        AppThemeMode.OLED_BLACK -> Color(0xFFA855F7)
+        AppThemeMode.OLED, AppThemeMode.OLED_BLACK -> Color(0xFFA855F7)
         AppThemeMode.SYSTEM -> MaterialTheme.colorScheme.primary
     }
     val paletteDotColor = Color(themePalette.primaryHex)

@@ -17,7 +17,7 @@ class AFStoreApplication : Application(), ImageLoaderFactory {
         instance = this
         initializeFirebase(this)
         try {
-            com.example.utils.AutoSyncWorker.schedulePeriodicSync(this)
+            AutoSyncWorker.schedulePeriodicSync(this)
         } catch (t: Throwable) {
             Log.e("AFStoreApplication", "Auto-sync scheduling failed", t)
         }

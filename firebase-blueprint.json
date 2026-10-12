@@ -1,0 +1,37 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "fullName", "role", "createdAt"]
+    },
+    "Location": {
+      "title": "Location",
+      "description": "Worker location coordinate",
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["lat", "lng", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User data"
+    },
+    "/users/{userId}/location_history/{locationId}": {
+      "schema": { "$ref": "Location" },
+      "description": "Worker location history"
+    }
+  }
+}

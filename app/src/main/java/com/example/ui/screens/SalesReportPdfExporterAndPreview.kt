@@ -97,16 +97,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class SalesReportPdfPayload(
-    val storeName: String,
-    val storePhone: String,
-    val currencySymbol: String,
-    val period: SalesReportPeriod,
-    val chartDisplayMode: SalesChartDisplayMode,
-    val metricComparisonMode: SalesMetricComparisonMode,
-    val overview: PeriodOverviewSummary,
-    val totalPurchasesCost: Double,
-    val buckets: List<SalesTimeBucket>,
-    val topSellingProducts: List<Triple<String, Int, Double>>,
+    val storeName: String = "",
+    val storePhone: String = "",
+    val currencySymbol: String = "",
+    val period: SalesReportPeriod = SalesReportPeriod.DAILY_7,
+    val chartDisplayMode: SalesChartDisplayMode = SalesChartDisplayMode.BAR_AND_TREND,
+    val metricComparisonMode: SalesMetricComparisonMode = SalesMetricComparisonMode.SALES_VS_PROFIT,
+    val overview: PeriodOverviewSummary = PeriodOverviewSummary(),
+    val totalPurchasesCost: Double = 0.0,
+    val buckets: List<SalesTimeBucket> = emptyList(),
+    val topSellingProducts: List<Triple<String, Int, Double>> = emptyList(),
     val generatedAtMillis: Long = System.currentTimeMillis()
 ) {
     val formattedExportDate: String

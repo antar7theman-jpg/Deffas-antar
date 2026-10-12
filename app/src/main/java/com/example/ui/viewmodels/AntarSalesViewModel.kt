@@ -28,14 +28,14 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import android.net.Uri
-import com.example.ui.screens.ArchivedScheduledReport
+import com.example.utils.ArchivedScheduledReport
 import com.example.ui.screens.DashboardLiveSummary
 import com.example.ui.screens.LiveDashboardAnalyticsEngine
 import com.example.ui.screens.LowStockInAppAlertPayload
 import com.example.ui.screens.LowStockNotificationManager
 import com.example.ui.screens.SalesReportPdfPayload
-import com.example.ui.screens.ScheduledReportConfig
-import com.example.ui.screens.ScheduledSalesReportHelper
+import com.example.utils.ScheduledReportConfig
+import com.example.utils.ScheduledSalesReportHelper
 import com.example.ui.theme.AppThemeMode
 import com.example.ui.theme.AppThemePalette
 import com.example.utils.BackupMetadata
@@ -633,7 +633,7 @@ class AntarSalesViewModel(
         val nextMode = when (_themeMode.value) {
             AppThemeMode.LIGHT -> AppThemeMode.DARK
             AppThemeMode.DARK -> AppThemeMode.OLED_BLACK
-            AppThemeMode.OLED_BLACK -> AppThemeMode.LIGHT
+            AppThemeMode.OLED, AppThemeMode.OLED_BLACK -> AppThemeMode.LIGHT
             AppThemeMode.SYSTEM -> AppThemeMode.LIGHT
         }
         setThemeMode(nextMode, showToastBanner = true)
