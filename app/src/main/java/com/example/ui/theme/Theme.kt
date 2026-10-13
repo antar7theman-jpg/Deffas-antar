@@ -12,6 +12,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.material3.Typography
 
 val Typography = Typography()
@@ -188,7 +190,10 @@ fun AFStoreTheme(
         AppThemeMode.SYSTEM -> if (isSystemInDarkTheme()) DarkSemanticColors else LocalAFStoreSemanticColors.current
     }
 
-    CompositionLocalProvider(LocalAFStoreSemanticColors provides semanticColors) {
+    CompositionLocalProvider(
+        LocalAFStoreSemanticColors provides semanticColors,
+        LocalLayoutDirection provides (if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

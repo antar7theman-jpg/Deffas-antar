@@ -30,6 +30,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -117,6 +118,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -143,6 +146,8 @@ fun PosScreen(
     onNavigateToPreSalesList: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val semantic = LocalAFStoreSemanticColors.current
     val products by viewModel.products.collectAsState()
     val regularCartItems by viewModel.cartItems.collectAsState()
@@ -176,6 +181,7 @@ fun PosScreen(
     var debouncedSearchQuery by remember { mutableStateOf("") }
 
     var showBarcodeDialog by remember { mutableStateOf(false) }
+    var showSearchBarcodeScanner by remember { mutableStateOf(false) }
     var isInlineScannerOpen by remember {
         mutableStateOf(ScannerPreferencesManager.isInlinePosCameraEnabled(context))
     }
@@ -218,6 +224,7 @@ fun PosScreen(
     val isCompactCard = screenWidthDp < 520
 
     val isInlineScanningAllowed = !showBarcodeDialog &&
+        !showSearchBarcodeScanner &&
         !showCheckoutReviewSheet &&
         !showCustomerPicker &&
         !showInvoiceReceiptModal &&
@@ -333,12 +340,42 @@ fun PosScreen(
                         )
                     },
                     trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier.padding(end = 4.dp)
+                        ) {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(
+                                    onClick = {
+                                        searchQuery = ""
+                                        focusManager.clearFocus()
+                                        keyboardController?.hide()
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "مسح نص البحث",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
+                                    showSearchBarcodeScanner = true
+                                },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .testTag("pos_search_barcode_camera_btn")
+                            ) {
                                 Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "مسح",
-                                    modifier = Modifier.size(18.dp)
+                                    Icons.Default.QrCodeScanner,
+                                    contentDescription = "قراءة الباركود بالكاميرا وتصفية الصنف",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -347,6 +384,8 @@ fun PosScreen(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(
                         onSearch = {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
                             if (searchQuery.isNotBlank()) {
                                 viewModel.scanBarcodeAndAddToCart(searchQuery)
                                 searchQuery = ""
@@ -362,6 +401,8 @@ fun PosScreen(
                 // Toggle Inline Live Camera Scanner Dock (CameraX + ZXing)
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
                         val next = !isInlineScannerOpen
                         isInlineScannerOpen = next
                         ScannerPreferencesManager.setInlinePosCameraEnabled(context, next)
@@ -401,7 +442,11 @@ fun PosScreen(
 
                 // Open Fullscreen Barcode Scanner Modal
                 Button(
-                    onClick = { showBarcodeDialog = true },
+                    onClick = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                        showBarcodeDialog = true
+                    },
                     shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(
                         width = 1.2.dp,
@@ -724,53 +769,119 @@ fun PosScreen(
                                 } else {
                                     LazyColumn(
                                         modifier = Modifier.fillMaxSize(),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                        contentPadding = PaddingValues(vertical = 8.dp)
+                                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                                        contentPadding = PaddingValues(vertical = 10.dp, horizontal = 2.dp)
                                     ) {
                                         itemsIndexed(
                                             items = cartItems,
                                             key = { _, it -> "cart_item_${it.product.id}" },
                                             contentType = { _, _ -> "pos_cart_item" }
                                         ) { index, item ->
-                                            Column(modifier = Modifier.fillMaxWidth()) {
-                                                Surface(
-                                                    shape = RoundedCornerShape(10.dp),
-                                                    color = if (semantic.isDark) {
-                                                        MaterialTheme.colorScheme.surface
-                                                    } else {
-                                                        Color(0xFFF8FAFC)
-                                                    },
-                                                    border = BorderStroke(
-                                                        1.1.dp,
-                                                        if (semantic.isDark) semantic.cardBorder.copy(alpha = 0.75f)
-                                                        else semantic.cardBorder
-                                                    )
+                                            Surface(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(14.dp),
+                                                color = if (semantic.isDark) {
+                                                    MaterialTheme.colorScheme.surface
+                                                } else {
+                                                    Color.White
+                                                },
+                                                shadowElevation = if (semantic.isDark) 1.dp else 3.5.dp,
+                                                border = BorderStroke(
+                                                    1.4.dp,
+                                                    if (item.isItemDebt) Color(0xFFD97706)
+                                                    else if (semantic.isDark) semantic.cardBorder.copy(alpha = 0.85f)
+                                                    else Color(0xFFCBD5E1)
+                                                )
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(IntrinsicSize.Min)
                                                 ) {
+                                                    // Vertical accent indicator strip
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .width(5.dp)
+                                                            .fillMaxHeight()
+                                                            .background(
+                                                                if (item.isItemDebt) Color(0xFFD97706)
+                                                                else MaterialTheme.colorScheme.primary
+                                                            )
+                                                    )
+
                                                     Column(
                                                         modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(horizontal = 8.dp, vertical = 7.dp),
-                                                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                                                            .weight(1f)
+                                                            .padding(horizontal = 9.dp, vertical = 8.dp),
+                                                        verticalArrangement = Arrangement.spacedBy(6.dp)
                                                     ) {
-                                                        Text(
-                                                            text = item.product.name,
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 12.sp,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis,
-                                                            color = if (semantic.isDark) {
-                                                                MaterialTheme.colorScheme.onSurface
-                                                            } else {
-                                                                Color(0xFF0F172A)
-                                                            },
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
-                                                                .clickable {
-                                                                    val liveProd = products.find { it.id == item.product.id } ?: item.product
-                                                                    selectedProductForImagePreview = liveProd
+                                                        // Top row: Item index badge + Name + Remove button
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Row(
+                                                                modifier = Modifier.weight(1f),
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                            ) {
+                                                                Surface(
+                                                                    shape = RoundedCornerShape(6.dp),
+                                                                    color = (if (item.isItemDebt) Color(0xFFD97706) else MaterialTheme.colorScheme.primary).copy(alpha = 0.14f)
+                                                                ) {
+                                                                    Text(
+                                                                        text = "#${index + 1}",
+                                                                        fontSize = 10.sp,
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        color = if (item.isItemDebt) Color(0xFFD97706) else MaterialTheme.colorScheme.primary,
+                                                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                                    )
                                                                 }
-                                                                .testTag("pos_cart_product_name_${item.product.id}")
-                                                        )
+                                                                Text(
+                                                                    text = item.product.name,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = 12.5.sp,
+                                                                    maxLines = 1,
+                                                                    overflow = TextOverflow.Ellipsis,
+                                                                    color = if (semantic.isDark) {
+                                                                        MaterialTheme.colorScheme.onSurface
+                                                                    } else {
+                                                                        Color(0xFF0F172A)
+                                                                    },
+                                                                    modifier = Modifier
+                                                                        .clickable {
+                                                                            val liveProd = products.find { it.id == item.product.id } ?: item.product
+                                                                            selectedProductForImagePreview = liveProd
+                                                                        }
+                                                                        .testTag("pos_cart_product_name_${item.product.id}")
+                                                                )
+                                                            }
+
+                                                            Surface(
+                                                                onClick = {
+                                                                    if (isPreSaleMode) {
+                                                                        viewModel.adjustPreSaleCartItemUnits(item.product.id, -item.quantity)
+                                                                    } else {
+                                                                        viewModel.removeCartItem(item.product.id)
+                                                                    }
+                                                                },
+                                                                shape = RoundedCornerShape(6.dp),
+                                                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+                                                                modifier = Modifier.size(24.dp)
+                                                            ) {
+                                                                Box(contentAlignment = Alignment.Center) {
+                                                                    Icon(
+                                                                        Icons.Default.Close,
+                                                                        contentDescription = "حذف السلعة",
+                                                                        tint = MaterialTheme.colorScheme.error,
+                                                                        modifier = Modifier.size(13.dp)
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Bottom row: Total price + Counter controls
                                                         Row(
                                                             modifier = Modifier.fillMaxWidth(),
                                                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -778,27 +889,27 @@ fun PosScreen(
                                                         ) {
                                                             Text(
                                                                 text = "${String.format(Locale.US, "%.2f", item.lineSubtotal)} $currencySymbol",
-                                                                fontSize = 11.5.sp,
+                                                                fontSize = 12.sp,
                                                                 color = MaterialTheme.colorScheme.primary,
                                                                 fontWeight = FontWeight.ExtraBold,
                                                                 maxLines = 1
                                                             )
                                                             Row(
                                                                 verticalAlignment = Alignment.CenterVertically,
-                                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                                                             ) {
                                                                 Surface(
                                                                     onClick = {
                                                                         if (isPreSaleMode) viewModel.adjustPreSaleCartItemUnits(item.product.id, -1) else viewModel.adjustCartItemUnits(item.product.id, -1)
                                                                     },
-                                                                    shape = RoundedCornerShape(6.dp),
+                                                                    shape = RoundedCornerShape(7.dp),
                                                                     color = MaterialTheme.colorScheme.surfaceVariant,
                                                                     border = BorderStroke(
                                                                         1.2.dp,
                                                                         if (semantic.isDark) MaterialTheme.colorScheme.outlineVariant
-                                                                        else MaterialTheme.colorScheme.outline
+                                                                        else Color(0xFFCBD5E1)
                                                                     ),
-                                                                    modifier = Modifier.size(24.dp)
+                                                                    modifier = Modifier.size(26.dp)
                                                                 ) {
                                                                     Box(contentAlignment = Alignment.Center) {
                                                                         Icon(
@@ -809,28 +920,34 @@ fun PosScreen(
                                                                         )
                                                                     }
                                                                 }
-                                                                Text(
-                                                                    text = "${item.effectiveUnitsDeducted}",
-                                                                    fontWeight = FontWeight.ExtraBold,
-                                                                    fontSize = 12.sp,
-                                                                    color = if (semantic.isDark) {
-                                                                        MaterialTheme.colorScheme.onSurface
-                                                                    } else {
-                                                                        Color(0xFF0F172A)
-                                                                    },
-                                                                    modifier = Modifier.padding(horizontal = 4.dp)
-                                                                )
+                                                                Surface(
+                                                                    shape = RoundedCornerShape(6.dp),
+                                                                    color = if (semantic.isDark) MaterialTheme.colorScheme.surfaceContainerHighest else Color(0xFFF1F5F9),
+                                                                    modifier = Modifier.padding(horizontal = 2.dp)
+                                                                ) {
+                                                                    Text(
+                                                                        text = "${item.effectiveUnitsDeducted}",
+                                                                        fontWeight = FontWeight.ExtraBold,
+                                                                        fontSize = 12.sp,
+                                                                        color = if (semantic.isDark) {
+                                                                            MaterialTheme.colorScheme.onSurface
+                                                                        } else {
+                                                                            Color(0xFF0F172A)
+                                                                        },
+                                                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                                                    )
+                                                                }
                                                                 Surface(
                                                                     onClick = {
                                                                         if (isPreSaleMode) viewModel.adjustPreSaleCartItemUnits(item.product.id, 1) else viewModel.adjustCartItemUnits(item.product.id, 1)
                                                                     },
-                                                                    shape = RoundedCornerShape(6.dp),
-                                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                                                    shape = RoundedCornerShape(7.dp),
+                                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
                                                                     border = BorderStroke(
                                                                         1.2.dp,
-                                                                        MaterialTheme.colorScheme.primary.copy(alpha = if (semantic.isDark) 0.6f else 0.85f)
+                                                                        MaterialTheme.colorScheme.primary.copy(alpha = if (semantic.isDark) 0.65f else 0.90f)
                                                                     ),
-                                                                    modifier = Modifier.size(24.dp)
+                                                                    modifier = Modifier.size(26.dp)
                                                                 ) {
                                                                     Box(contentAlignment = Alignment.Center) {
                                                                         Icon(
@@ -844,20 +961,6 @@ fun PosScreen(
                                                             }
                                                         }
                                                     }
-                                                }
-
-                                                if (index < cartItems.lastIndex) {
-                                                    HorizontalDivider(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(horizontal = 6.dp, vertical = 4.dp),
-                                                        thickness = 1.dp,
-                                                        color = if (semantic.isDark) {
-                                                            semantic.cardBorder.copy(alpha = 0.65f)
-                                                        } else {
-                                                            Color(0xFFCBD5E1)
-                                                        }
-                                                    )
                                                 }
                                             }
                                         }
@@ -971,6 +1074,26 @@ fun PosScreen(
                 }
             }
         }
+    }
+
+    if (showSearchBarcodeScanner) {
+        SimpleBarcodeCaptureDialog(
+            title = "مسح باركود بالكاميرا لتصفية الصنف",
+            onBarcodeScanned = { scannedCode ->
+                focusManager.clearFocus()
+                keyboardController?.hide()
+                showSearchBarcodeScanner = false
+                val code = scannedCode.trim()
+                if (code.isNotEmpty()) {
+                    searchQuery = code
+                }
+            },
+            onDismiss = {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+                showSearchBarcodeScanner = false
+            }
+        )
     }
 
     if (showBarcodeDialog) {
@@ -1744,11 +1867,11 @@ private fun ResponsivePosProductCard(
             .fillMaxWidth()
             .clickable { onAddUnit() }
             .testTag("product_pos_card_${product.id}"),
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (semantic.isDark) 0.dp else 2.5.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (semantic.isDark) 0.dp else 3.dp),
         border = BorderStroke(
-            width = 1.dp,
-            color = if (isLow) semantic.dangerRed.copy(alpha = 0.45f) else semantic.cardBorder
+            width = 1.2.dp,
+            color = if (isLow) semantic.dangerRed.copy(alpha = 0.55f) else semantic.cardBorder
         ),
         colors = CardDefaults.cardColors(
             containerColor = semantic.cardElevated
@@ -1782,9 +1905,16 @@ private fun ResponsivePosProductCard(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.testTag("pos_product_name_${product.id}")
                         )
-                        if (product.category.isNotBlank()) {
+                        val trimmedCat = product.category.trim()
+                        val isGeneralCat = trimmedCat.isBlank() ||
+                            trimmedCat == "عام" ||
+                            trimmedCat == "فئة عام" ||
+                            trimmedCat == "بدون فئة" ||
+                            trimmedCat.equals("general", ignoreCase = true) ||
+                            trimmedCat.equals("default", ignoreCase = true)
+                        if (!isGeneralCat) {
                             HighlightedText(
-                                text = "فئة: ${product.category}",
+                                text = trimmedCat,
                                 query = searchHighlightQuery,
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2063,6 +2193,8 @@ fun InventoryScreen(
     onOpenReorderAlertsScreen: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val semantic = LocalAFStoreSemanticColors.current
     val products by viewModel.products.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
@@ -2248,6 +2380,8 @@ fun InventoryScreen(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
                     onSearch = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
                         val code = searchQuery.trim()
                         if (code.isNotEmpty()) {
                             val found = products.find {
@@ -2276,7 +2410,11 @@ fun InventoryScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    onClick = { showInventoryBarcodeScanner = true },
+                    onClick = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                        showInventoryBarcodeScanner = true
+                    },
                     shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
@@ -2352,10 +2490,10 @@ fun InventoryScreen(
                         val hasCustomMin = productCustomMinStock.containsKey(product.id)
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = if (semantic.isDark) 0.dp else 2.5.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = if (semantic.isDark) 0.dp else 3.dp),
                             border = BorderStroke(
-                                width = 1.dp,
+                                width = 1.2.dp,
                                 color = if (isLow) semantic.dangerRed.copy(alpha = 0.55f) else semantic.cardBorder
                             ),
                             colors = CardDefaults.cardColors(
@@ -2506,10 +2644,10 @@ fun InventoryScreen(
                         val hasCustomMin = productCustomMinStock.containsKey(product.id)
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = if (semantic.isDark) 0.dp else 2.5.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = if (semantic.isDark) 0.dp else 3.dp),
                             border = BorderStroke(
-                                width = 1.dp,
+                                width = 1.2.dp,
                                 color = if (isLow) semantic.dangerRed.copy(alpha = 0.55f) else semantic.cardBorder
                             ),
                             colors = CardDefaults.cardColors(
@@ -2688,6 +2826,8 @@ fun InventoryScreen(
         SimpleBarcodeCaptureDialog(
             title = "مسح باركود في المخزون",
             onBarcodeScanned = { scannedCode ->
+                focusManager.clearFocus()
+                keyboardController?.hide()
                 showInventoryBarcodeScanner = false
                 val code = scannedCode.trim()
                 if (code.isNotEmpty()) {
@@ -2702,7 +2842,11 @@ fun InventoryScreen(
                     }
                 }
             },
-            onDismiss = { showInventoryBarcodeScanner = false }
+            onDismiss = {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+                showInventoryBarcodeScanner = false
+            }
         )
     }
     if (showVignetteScanner) {

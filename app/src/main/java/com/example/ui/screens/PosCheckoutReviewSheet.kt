@@ -968,33 +968,33 @@ fun PosCheckoutReviewSheet(
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 8.dp, horizontal = 8.dp),
+                                                .padding(vertical = 10.dp, horizontal = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             HorizontalDivider(
                                                 modifier = Modifier.weight(1f),
                                                 thickness = 1.2.dp,
-                                                color = colorScheme.outlineVariant
+                                                color = colorScheme.outlineVariant.copy(alpha = 0.7f)
                                             )
                                             Surface(
                                                 shape = RoundedCornerShape(50),
                                                 color = colorScheme.surfaceContainerHighest,
-                                                border = BorderStroke(1.dp, colorScheme.outlineVariant),
+                                                border = BorderStroke(1.2.dp, colorScheme.outlineVariant),
                                                 modifier = Modifier.padding(horizontal = 10.dp)
                                             ) {
                                                 Text(
                                                     text = "سلعة ${index + 2} من ${cartItems.size}",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                                    fontSize = 10.5.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = colorScheme.primary,
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                                                 )
                                             }
                                             HorizontalDivider(
                                                 modifier = Modifier.weight(1f),
                                                 thickness = 1.2.dp,
-                                                color = colorScheme.outlineVariant
+                                                color = colorScheme.outlineVariant.copy(alpha = 0.7f)
                                             )
                                         }
                                     } else {
@@ -2407,19 +2407,33 @@ private fun CheckoutReviewItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("checkout_item_card_${item.product.id}"),
-        shape = RoundedCornerShape(20.dp),
-        color = colorScheme.surfaceContainerLow,
-        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(18.dp),
+        color = if (item.isItemDebt) debtContainerColor else colorScheme.surface,
+        shadowElevation = 3.5.dp,
         border = BorderStroke(
-            width = if (item.isItemDebt) 1.6.dp else 1.2.dp,
-            color = if (item.isItemDebt) debtBorderColor else colorScheme.outlineVariant
+            width = if (item.isItemDebt) 1.8.dp else 1.4.dp,
+            color = if (item.isItemDebt) debtBorderColor else Color(0xFFCBD5E1)
         )
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .height(IntrinsicSize.Min)
         ) {
+            // Vertical accent indicator strip
+            Box(
+                modifier = Modifier
+                    .width(6.dp)
+                    .fillMaxHeight()
+                    .background(if (item.isItemDebt) debtAccentColor else colorScheme.primary)
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(14.dp)
+            ) {
             // Top Row: Delete Icon + Total Price (Left) | Product Name + Index Badge (Right)
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2828,6 +2842,7 @@ private fun CheckoutReviewItemCard(
             }
         }
     }
+}
 }
 
 private fun buildInvoiceShareText(

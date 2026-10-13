@@ -1,35 +1,7 @@
-# Hide Google Sign-In Button
+# خطة عمل: إضافة قارئ الباركود بالكاميرا داخل حقل البحث وتصفية الصنف (مكتملة ✓)
 
-Remove or hide the Google Sign-In button from the staff/owner authentication screen as requested, preserving all other app features and behavior.
-
-## User Review & Critical Decisions
-
-> [!IMPORTANT]
-> The Google Sign-In button on the login screen will be removed cleanly.
-
-- **Confirmed Decision**: Remove the Google Sign-In button block entirely from `FirebaseStaffAuthComponents.kt`.
-
-## 1. Overview & Core Concept
-
-- **What It Does**: Hides/removes the Google sign-in option from the login screen.
-- **Key Value**: Streamlines the login interface to match user preferences without touching other functionalities.
-
-## 2. User Experience & Visual Design
-
-- **Login Screen**: The green "Sign in with Google" button is removed, leaving standard email/password login and direct login options intact with consistent spacing.
-
-## 3. Key Product Decisions & Trade-Offs
-
-- **Decision**: Completely remove the button and associated callback invocation from the UI layout.
-- **Why**: Directly satisfies the user request while keeping credential manager code intact if needed, or safely cleaning up the specific view block.
-
-## 4. Technical Architecture & Data Strategy
-
-```
-┌──────────────────────────────────────────┐
-│      FirebaseStaffSignInScreen           │
-│  - Direct login / Email login            │
-│  - [Google Sign-In Button REMOVED]       │
-│  - Register new account link             │
-└──────────────────────────────────────────┘
-```
+تم تنفيذ المطلوب بالكامل بناءً على اختياراتكم المعتمدة:
+1. ✓ **موضع الزر:** تم وضع أيقونة ماسح الباركود بالكاميرا داخل حقل البحث في شاشة البيع (`PosScreen`) في نهاية الحقل بجانب زر المسح السريع.
+2. ✓ **سلوك المسح الفوري:** فور توجيه الكاميرا وقراءة الباركود، يتم إدخال رقم الباركود مباشرة في حقل البحث وتصفية المنتج المطابق فوراً في قائمة العرض، مع إغلاق الكاميرا وإصدار اهتزاز ونغمة تأكيد النجاح.
+3. ✓ **تفعيل مطابقة الباركود بدقة:** تم تحديث آلية البحث في `FullTextSearchHelper` لتشمل مطابقة باركود القطعة وباركود الكرتونة واسم الصنف وتصنيفه بشكل فوري.
+4. ✓ **التحقق والبناء:** تم اختبار وبناء التطبيق بنجاح دون أخطاء.

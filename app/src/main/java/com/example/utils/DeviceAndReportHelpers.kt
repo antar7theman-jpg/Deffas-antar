@@ -606,7 +606,17 @@ object ScannerPreferencesManager {
 
 // 10. Search & Text Highlighting in com.example.utils
 object FullTextSearchHelper {
-    fun matchesFullTextSearch(item: Any?, query: String): Boolean = true
+    fun matchesFullTextSearch(item: Any?, query: String): Boolean {
+        val q = query.trim()
+        if (q.isEmpty()) return true
+        if (item is com.example.data.models.Product) {
+            return item.name.contains(q, ignoreCase = true) ||
+                item.barcode.contains(q, ignoreCase = true) ||
+                (item.cartonBarcode.isNotBlank() && item.cartonBarcode.contains(q, ignoreCase = true)) ||
+                item.category.contains(q, ignoreCase = true)
+        }
+        return true
+    }
 }
 
 @Composable
