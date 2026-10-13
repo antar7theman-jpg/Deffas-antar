@@ -169,7 +169,6 @@ enum class MainAppTab(
 ) {
     POS("الكاشير", "نقطة البيع الفورية السريعة", Icons.Default.PointOfSale, "tab_pos", true),
     PRE_SALE_POS("البيع المسبق", "أخذ طلبيات العملاء للمستودع", Icons.Default.EventNote, "tab_pre_sale_pos", true),
-    INVENTORY("المخزون", "إدارة الأصناف والكميات المحجوزة", Icons.Default.Inventory2, "tab_inventory", true),
     PRE_SALES_ORDERS("طلبات البيع المسبق", "إدارة وتسليم طلبيات المستودع", Icons.Default.LocalShipping, "tab_pre_sales_orders", false),
     CUSTOMERS("العملاء", "حسابات العملاء والديون", Icons.Default.Group, "tab_customers", false),
     LOYALTY("ولاء العملاء", "لوحة تحكم الولاء ونقاط المكافآت", Icons.Default.Star, "tab_loyalty", false),
@@ -178,6 +177,7 @@ enum class MainAppTab(
     DEBTS("الديون وحركتها", "سجل المديونيات والتحصيل والسداد", Icons.Default.AccountBalanceWallet, "tab_debts", false),
     INVOICES("الفواتير", "أرشيف فواتير المبيعات والمرتجعات", Icons.AutoMirrored.Filled.ReceiptLong, "tab_invoices", false),
     PURCHASES("فواتير المشتريات", "توريد البضائع وفواتير الموردين", Icons.Default.ShoppingBag, "tab_purchases", false),
+    INVENTORY("المخزون", "إدارة الأصناف والكميات المحجوزة", Icons.Default.Inventory2, "tab_inventory", false),
     REORDER_ALERTS("تنبيهات الطلب", "إدارة النواقص وإشعارات المخزون", Icons.Default.NotificationsActive, "tab_reorder_alerts", false),
     WORKER_TRACKING("تتبع العمال", "تتبع إحداثيات GPS للعمال والمناديب مباشر", Icons.Default.MyLocation, "tab_worker_tracking", false),
     REPORTS("التقارير", "الأرباح الصافية والإحصائيات المالية", Icons.Default.Analytics, "tab_reports", false)
@@ -474,10 +474,25 @@ fun AFStoreMainApp(
                         NavigationBar(
                             containerColor = MaterialTheme.colorScheme.surface,
                             tonalElevation = NavigationBarDefaults.Elevation,
-                            modifier = Modifier.height(64.dp)
+                            modifier = Modifier.height(66.dp)
                         ) {
                             bottomBarTabs.forEach { tab ->
                                 val isSelectedTab = selectedTab == tab
+                                val isPrimarySaleTab = tab == MainAppTab.POS || tab == MainAppTab.PRE_SALE_POS
+                                val capsuleWidth = when {
+                                    isPrimarySaleTab && isSelectedTab -> if (isCompactScreen) 58.dp else 64.dp
+                                    isPrimarySaleTab -> if (isCompactScreen) 50.dp else 56.dp
+                                    isSelectedTab -> if (isCompactScreen) 44.dp else 48.dp
+                                    else -> if (isCompactScreen) 38.dp else 42.dp
+                                }
+                                val capsuleHeight = if (isCompactScreen) 30.dp else 32.dp
+                                val iconSize = when {
+                                    isPrimarySaleTab && isSelectedTab -> if (isCompactScreen) 23.dp else 25.dp
+                                    isPrimarySaleTab -> if (isCompactScreen) 22.dp else 24.dp
+                                    isSelectedTab -> if (isCompactScreen) 21.dp else 22.dp
+                                    else -> if (isCompactScreen) 20.dp else 21.dp
+                                }
+
                                 NavigationBarItem(
                                     selected = isSelectedTab,
                                     onClick = {
@@ -489,13 +504,25 @@ fun AFStoreMainApp(
                                         Box(
                                             contentAlignment = Alignment.Center,
                                             modifier = Modifier
-                                                .size(if (isSelectedTab) 36.dp else 32.dp)
-                                                .clip(RoundedCornerShape(10.dp))
+                                                .width(capsuleWidth)
+                                                .height(capsuleHeight)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .then(
+                                                    if (isPrimarySaleTab && !isSelectedTab) {
+                                                        Modifier.border(
+                                                            BorderStroke(
+                                                                0.8.dp,
+                                                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                                            ),
+                                                            RoundedCornerShape(16.dp)
+                                                        )
+                                                    } else Modifier
+                                                )
                                                 .background(
-                                                    if (isSelectedTab) {
-                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                                                    } else {
-                                                        Color.Transparent
+                                                    when {
+                                                        isSelectedTab -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                                        isPrimarySaleTab -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                                        else -> Color.Transparent
                                                     }
                                                 )
                                         ) {
@@ -503,7 +530,7 @@ fun AFStoreMainApp(
                                                 imageVector = tab.icon,
                                                 contentDescription = tab.labelAr,
                                                 tint = if (isSelectedTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(if (isCompactScreen) 20.dp else 22.dp)
+                                                modifier = Modifier.size(iconSize)
                                             )
                                         }
                                     },

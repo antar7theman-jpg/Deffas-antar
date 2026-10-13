@@ -132,7 +132,8 @@ internal data class DebtPaymentReceiptData(
     val paidAmount: Double,
     val remainingBalance: Double,
     val notes: String,
-    val timestampMillis: Long
+    val timestampMillis: Long,
+    val invoiceReference: String? = null
 )
 
 internal data class ShareCustomerDebtPayload(
@@ -191,6 +192,7 @@ fun DebtsAndMovementsScreen(viewModel: AntarSalesViewModel) {
     var preselectedSupplierPhoneForAddDebt by remember { mutableStateOf("") }
 
     var customerForPayment by remember { mutableStateOf<Customer?>(null) }
+    var customerInitialInvoiceId by remember { mutableStateOf<String?>(null) }
     var supplierInvoiceForPayment by remember { mutableStateOf<PurchaseInvoice?>(null) }
     var showQuickPayPickerDialog by remember { mutableStateOf(false) }
 
@@ -224,6 +226,7 @@ fun DebtsAndMovementsScreen(viewModel: AntarSalesViewModel) {
         val previousBeforePayment = (remainingAfterPayment + paidAmount).coerceAtLeast(paidAmount)
 
         val receiptCode = "PAY-${(txDateMillis / 1000).toString().takeLast(6)}"
+        val invCodeFromNotes = Regex("""#([A-Za-z0-9\-]+)""").find(notes)?.groupValues?.get(1)
         return DebtPaymentReceiptData(
             receiptNumber = receiptCode,
             partyType = "CUSTOMER",
@@ -233,7 +236,8 @@ fun DebtsAndMovementsScreen(viewModel: AntarSalesViewModel) {
             paidAmount = paidAmount,
             remainingBalance = remainingAfterPayment,
             notes = notes.ifBlank { "تحصيل دفعة نقدية من حساب المديونية" },
-            timestampMillis = txDateMillis
+            timestampMillis = txDateMillis,
+            invoiceReference = invCodeFromNotes
         )
     }
 
@@ -258,7 +262,8 @@ fun DebtsAndMovementsScreen(viewModel: AntarSalesViewModel) {
             paidAmount = paid,
             remainingBalance = rem,
             notes = "سداد دفعة من فاتورة توريد رقم ${invoice.invoiceNumber}",
-            timestampMillis = ts
+            timestampMillis = ts,
+            invoiceReference = invoice.invoiceNumber
         )
     }
 
@@ -1101,7 +1106,10 @@ fun DebtsAndMovementsScreen(viewModel: AntarSalesViewModel) {
                     movements = unifiedMovements,
                     currencySymbol = currencySymbol,
                     isDark = isDark,
-                    onPayCustomer = { cust -> customerForPayment = cust },
+                    onPayCustomer = { cust, invId ->
+                        customerForPayment = cust
+                        customerInitialInvoiceId = invId
+                    },
                     onPaySupplierInvoice = { inv -> supplierInvoiceForPayment = inv },
                     onOpenCustomerStatement = { cust -> statementCustomer = cust },
                     onOpenSupplierStatement = { supName -> statementSupplierName = supName },
@@ -1301,17 +1309,25 @@ fun DebtsAndMovementsScreen(viewModel: AntarSalesViewModel) {
         CustomerDebtPaymentDialog(
             customer = liveCustomer,
             currencySymbol = currencySymbol,
-            onDismiss = { customerForPayment = null },
-            onConfirmPayment = { amount, notes ->
+            archivedInvoices = archivedInvoices,
+            customerTransactions = customerTransactions,
+            initialInvoiceId = customerInitialInvoiceId,
+            onDismiss = {
+                customerForPayment = null
+                customerInitialInvoiceId = null
+            },
+            onConfirmPayment = { amount, notes, invoiceRef ->
                 viewModel.recordCustomerPayment(liveCustomer, amount, notes)
                 customerForPayment = null
+                customerInitialInvoiceId = null
             },
-            onConfirmAndPrintReceipt = { amount, notes ->
+            onConfirmAndPrintReceipt = { amount, notes, invoiceRef ->
                 val prevDebt = liveCustomer.balanceDebt
                 val remDebt = (prevDebt - amount).coerceAtLeast(0.0)
                 val now = System.currentTimeMillis()
                 viewModel.recordCustomerPayment(liveCustomer, amount, notes)
                 customerForPayment = null
+                customerInitialInvoiceId = null
                 activePaymentReceipt = DebtPaymentReceiptData(
                     receiptNumber = "PAY-${(now / 1000).toString().takeLast(6)}",
                     partyType = "CUSTOMER",
@@ -1321,7 +1337,8 @@ fun DebtsAndMovementsScreen(viewModel: AntarSalesViewModel) {
                     paidAmount = amount,
                     remainingBalance = remDebt,
                     notes = notes.ifBlank { "تحصيل دفعة نقدية من حساب المديونية" },
-                    timestampMillis = now
+                    timestampMillis = now,
+                    invoiceReference = invoiceRef
                 )
             }
         )
@@ -1586,7 +1603,7 @@ private fun UnifiedMovementsTimelineList(
     movements: List<UnifiedDebtMovementItem>,
     currencySymbol: String,
     isDark: Boolean,
-    onPayCustomer: (Customer) -> Unit,
+    onPayCustomer: (Customer, String?) -> Unit,
     onPaySupplierInvoice: (PurchaseInvoice) -> Unit,
     onOpenCustomerStatement: (Customer) -> Unit,
     onOpenSupplierStatement: (String) -> Unit,
@@ -1878,7 +1895,8 @@ private fun UnifiedMovementsTimelineList(
                             Button(
                                 onClick = {
                                     if (isCustomer && item.customerRef != null) {
-                                        onPayCustomer(item.customerRef)
+                                        val invIdFromNotes = Regex("""#([A-Za-z0-9\-]+)""").find(item.notes)?.groupValues?.get(1)
+                                        onPayCustomer(item.customerRef, invIdFromNotes)
                                     } else if (!isCustomer && item.supplierInvoiceRef != null) {
                                         onPaySupplierInvoice(item.supplierInvoiceRef)
                                     }
@@ -2966,21 +2984,121 @@ private fun AddDebtOperationDialog(
     )
 }
 
+private data class CustomerDebtInvoiceOption(
+    val invoiceId: String,
+    val amount: Double,
+    val dateMillis: Long,
+    val description: String,
+    val source: String // "ARCHIVED_INVOICE" or "TRANSACTION"
+)
+
 @Composable
 private fun CustomerDebtPaymentDialog(
     customer: Customer,
     currencySymbol: String,
+    archivedInvoices: List<ArchivedInvoice> = emptyList(),
+    customerTransactions: List<CustomerTransaction> = emptyList(),
+    initialInvoiceId: String? = null,
     onDismiss: () -> Unit,
-    onConfirmPayment: (Double, String) -> Unit,
-    onConfirmAndPrintReceipt: (Double, String) -> Unit
+    onConfirmPayment: (Double, String, String?) -> Unit,
+    onConfirmAndPrintReceipt: (Double, String, String?) -> Unit
 ) {
     val semantic = LocalAFStoreSemanticColors.current
-    var amountInput by remember(customer.balanceDebt) {
-        mutableStateOf(
-            if (customer.balanceDebt > 0) String.format(Locale.US, "%.2f", customer.balanceDebt) else ""
+
+    // Discover debt invoices for this specific customer
+    val invoiceOptions = remember(customer.id, customer.name, archivedInvoices, customerTransactions) {
+        val options = mutableListOf<CustomerDebtInvoiceOption>()
+        val seenInvoiceIds = mutableSetOf<String>()
+
+        // 1. From archived invoices (isDebt = true, or paymentMethod containing debt)
+        archivedInvoices
+            .filter { inv ->
+                val matchesCust = (inv.customerId != null && inv.customerId == customer.id) ||
+                    (inv.customerName.trim().isNotBlank() && inv.customerName.trim().equals(customer.name.trim(), ignoreCase = true))
+                matchesCust && (inv.isDebt || inv.paymentMethod.contains("دين", ignoreCase = true) || inv.paymentMethod.contains("آجل", ignoreCase = true))
+            }
+            .sortedByDescending { it.dateMillis }
+            .forEach { inv ->
+                if (seenInvoiceIds.add(inv.invoiceId)) {
+                    val desc = if (inv.items.isNotEmpty()) {
+                        "${inv.items.size} أصناف • إجمالي الفاتورة"
+                    } else {
+                        "فاتورة مبيعات آجل"
+                    }
+                    options.add(
+                        CustomerDebtInvoiceOption(
+                            invoiceId = inv.invoiceId,
+                            amount = inv.subtotal,
+                            dateMillis = inv.dateMillis,
+                            description = desc,
+                            source = "ARCHIVED_INVOICE"
+                        )
+                    )
+                }
+            }
+
+        // 2. From customer transactions (DEBT type where notes mention invoice #)
+        val invoiceRegex = Regex("""#([A-Za-z0-9\-]+)""")
+        customerTransactions
+            .filter { tx -> tx.customerId == customer.id && tx.type != "PAYMENT" }
+            .sortedByDescending { tx -> tx.date }
+            .forEach { tx ->
+                val match = invoiceRegex.find(tx.notes)
+                if (match != null) {
+                    val invId = match.groupValues[1]
+                    if (seenInvoiceIds.add(invId)) {
+                        options.add(
+                            CustomerDebtInvoiceOption(
+                                invoiceId = invId,
+                                amount = tx.amount,
+                                dateMillis = tx.date,
+                                description = tx.notes,
+                                source = "TRANSACTION"
+                            )
+                        )
+                    }
+                }
+            }
+
+        options
+    }
+
+    var selectedInvoice by remember {
+        mutableStateOf<CustomerDebtInvoiceOption?>(
+            if (initialInvoiceId != null) {
+                invoiceOptions.find { it.invoiceId == initialInvoiceId }
+            } else null
         )
     }
-    var notesInput by remember { mutableStateOf("تحصيل دفعة نقدية من حساب المديونية") }
+
+    var amountInput by remember(customer.balanceDebt, selectedInvoice) {
+        mutableStateOf(
+            if (selectedInvoice != null) {
+                val candidateAmt = if (customer.balanceDebt > 0) {
+                    selectedInvoice!!.amount.coerceAtMost(customer.balanceDebt)
+                } else {
+                    selectedInvoice!!.amount
+                }
+                String.format(Locale.US, "%.2f", candidateAmt)
+            } else if (customer.balanceDebt > 0) {
+                String.format(Locale.US, "%.2f", customer.balanceDebt)
+            } else {
+                ""
+            }
+        )
+    }
+
+    var notesInput by remember(selectedInvoice) {
+        mutableStateOf(
+            if (selectedInvoice != null) {
+                "سداد فاتورة مبيعات #${selectedInvoice!!.invoiceId}"
+            } else {
+                "تحصيل دفعة نقدية من حساب المديونية"
+            }
+        )
+    }
+
+    var isDropdownExpanded by remember { mutableStateOf(false) }
 
     val enteredAmount = amountInput.toDoubleOrNull() ?: 0.0
     val remainingAfterPayment = (customer.balanceDebt - enteredAmount).coerceAtLeast(0.0)
@@ -3016,6 +3134,254 @@ private fun CustomerDebtPaymentDialog(
                             fontSize = 15.sp,
                             color = Color(0xFFEF4444)
                         )
+                    }
+                }
+
+                // 2. Select Invoice to Pay Dropdown (ExposedDropdownMenuBox)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "تحديد الفاتورة المسددة (اختياري):",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (selectedInvoice != null) {
+                            TextButton(
+                                onClick = {
+                                    selectedInvoice = null
+                                    notesInput = "تحصيل دفعة نقدية من حساب المديونية"
+                                    if (customer.balanceDebt > 0) {
+                                        amountInput = String.format(Locale.US, "%.2f", customer.balanceDebt)
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                                modifier = Modifier.height(26.dp)
+                            ) {
+                                Text("إلغاء التحديد", fontSize = 11.sp, color = semantic.debtAmber)
+                            }
+                        }
+                    }
+
+                    // Custom Expandable Invoice Selection Box
+                    val selectedTitle = selectedInvoice?.let { "فاتورة #${it.invoiceId} (${String.format(Locale.US, "%.2f", it.amount)} $currencySymbol)" }
+                        ?: if (invoiceOptions.isEmpty()) "لا توجد فواتير آجلة مسجلة للعميل" else "دفعة عامة لحساب المديونية (غير مرتبطة بفاتورة)"
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(
+                            1.dp,
+                            if (selectedInvoice != null) semantic.profitGreen else MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = invoiceOptions.isNotEmpty()) {
+                                isDropdownExpanded = !isDropdownExpanded
+                            }
+                            .testTag("select_paid_invoice_dropdown")
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                        contentDescription = null,
+                                        tint = if (selectedInvoice != null) semantic.profitGreen else MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = "الفاتورة المراد سدادها:",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = selectedTitle,
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (selectedInvoice != null) semantic.profitGreen else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                                if (invoiceOptions.isNotEmpty()) {
+                                    Icon(
+                                        imageVector = if (isDropdownExpanded) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+
+                            if (isDropdownExpanded) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // Option 1: General payment (no invoice)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (selectedInvoice == null) semantic.profitGreen.copy(alpha = 0.12f) else Color.Transparent,
+                                    border = BorderStroke(
+                                        0.8.dp,
+                                        if (selectedInvoice == null) semantic.profitGreen else Color.Transparent
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedInvoice = null
+                                            notesInput = "تحصيل دفعة نقدية من حساب المديونية"
+                                            if (customer.balanceDebt > 0) {
+                                                amountInput = String.format(Locale.US, "%.2f", customer.balanceDebt)
+                                            }
+                                            isDropdownExpanded = false
+                                        }
+                                        .padding(vertical = 4.dp, horizontal = 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Payments,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(17.dp)
+                                            )
+                                            Column {
+                                                Text(
+                                                    text = "دفعة عامة لحساب المديونية",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(
+                                                    text = "تسديد من إجمالي حساب العميل دون ربطه بفاتورة محددة",
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                        if (selectedInvoice == null) {
+                                            Icon(
+                                                imageVector = Icons.Default.CheckCircle,
+                                                contentDescription = null,
+                                                tint = semantic.profitGreen,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                invoiceOptions.forEach { opt ->
+                                    val isCurSelected = selectedInvoice?.invoiceId == opt.invoiceId
+                                    val dateStr = SimpleDateFormat("yyyy/MM/dd", Locale.US).format(Date(opt.dateMillis))
+
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isCurSelected) semantic.profitGreen.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                        border = BorderStroke(
+                                            0.8.dp,
+                                            if (isCurSelected) semantic.profitGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 4.dp)
+                                            .clickable {
+                                                selectedInvoice = opt
+                                                val fillAmt = if (customer.balanceDebt > 0) {
+                                                    opt.amount.coerceAtMost(customer.balanceDebt)
+                                                } else {
+                                                    opt.amount
+                                                }
+                                                amountInput = String.format(Locale.US, "%.2f", fillAmt)
+                                                notesInput = "سداد فاتورة مبيعات #${opt.invoiceId}"
+                                                isDropdownExpanded = false
+                                            }
+                                            .padding(vertical = 4.dp, horizontal = 6.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                                    contentDescription = null,
+                                                    tint = semantic.debtAmber,
+                                                    modifier = Modifier.size(17.dp)
+                                                )
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "فاتورة مبيعات #${opt.invoiceId}",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                    Text(
+                                                        text = "$dateStr • ${opt.description}",
+                                                        fontSize = 10.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                            }
+
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = semantic.debtAmber.copy(alpha = 0.15f),
+                                                    border = BorderStroke(0.8.dp, semantic.debtAmber.copy(alpha = 0.6f))
+                                                ) {
+                                                    Text(
+                                                        text = "${String.format(Locale.US, "%.2f", opt.amount)} $currencySymbol",
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        fontSize = 11.5.sp,
+                                                        color = semantic.debtAmber,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                                if (isCurSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CheckCircle,
+                                                        contentDescription = null,
+                                                        tint = semantic.profitGreen,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -3062,7 +3428,7 @@ private fun CustomerDebtPaymentDialog(
                 OutlinedTextField(
                     value = notesInput,
                     onValueChange = { notesInput = it },
-                    label = { Text("ملاحظات التحصيل") },
+                    label = { Text("ملاحظات وبيان التحصيل") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -3104,6 +3470,20 @@ private fun CustomerDebtPaymentDialog(
                                 color = if (remainingAfterPayment > 0.009) semantic.debtAmber else semantic.profitGreen
                             )
                         }
+                        if (selectedInvoice != null) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("الفاتورة المحددة:", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    text = "#${selectedInvoice!!.invoiceId}",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = semantic.profitGreen
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -3114,7 +3494,7 @@ private fun CustomerDebtPaymentDialog(
                     onClick = {
                         val amt = amountInput.toDoubleOrNull() ?: 0.0
                         if (amt > 0.0) {
-                            onConfirmPayment(amt, notesInput.trim())
+                            onConfirmPayment(amt, notesInput.trim(), selectedInvoice?.invoiceId)
                         }
                     },
                     shape = RoundedCornerShape(10.dp),
@@ -3134,7 +3514,7 @@ private fun CustomerDebtPaymentDialog(
                     onClick = {
                         val amt = amountInput.toDoubleOrNull() ?: 0.0
                         if (amt > 0.0) {
-                            onConfirmAndPrintReceipt(amt, notesInput.trim())
+                            onConfirmAndPrintReceipt(amt, notesInput.trim(), selectedInvoice?.invoiceId)
                         }
                     },
                     shape = RoundedCornerShape(10.dp),
@@ -4460,6 +4840,9 @@ internal fun DebtPaymentReceiptDialog(
             appendLine("• *المبلغ المسدد: ${String.format(Locale.US, "%.2f", receipt.paidAmount)} $currencySymbol* ✅")
             appendLine("• *الرصيد المتبقي: ${String.format(Locale.US, "%.2f", receipt.remainingBalance)} $currencySymbol*")
             appendLine("حالة الذمة: ${if (isFullyCleared) "خالص الذمة بالكامل ✅" else "متبقي ذمة مالية"}")
+            if (!receipt.invoiceReference.isNullOrBlank()) {
+                appendLine("الفاتورة المسددة: #${receipt.invoiceReference}")
+            }
             if (receipt.notes.isNotBlank()) {
                 appendLine("البيان: ${receipt.notes}")
             }
@@ -4689,6 +5072,27 @@ internal fun DebtPaymentReceiptDialog(
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFF1E293B)
                                         )
+                                    }
+
+                                    if (!receipt.invoiceReference.isNullOrBlank()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = "الفاتورة المسددة:",
+                                                fontSize = 11.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF047857)
+                                            )
+                                            Text(
+                                                text = "#${receipt.invoiceReference}",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = Color(0xFF047857),
+                                                fontFamily = FontFamily.Monospace
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -5758,6 +6162,10 @@ private fun printDebtReceiptViaSystemPrintManager(
                     )
 
                     y = boxBottom + 34f
+                    if (!receipt.invoiceReference.isNullOrBlank()) {
+                        canvas.drawText("الفاتورة المسددة: #${receipt.invoiceReference}", rightEdge - 24f, y, labelPaint)
+                        y += 24f
+                    }
                     canvas.drawText("البيان / الملاحظات: ${receipt.notes}", rightEdge - 24f, y, labelPaint)
 
                     y += 65f
