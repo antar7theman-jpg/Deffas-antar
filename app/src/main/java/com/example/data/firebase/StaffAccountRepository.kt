@@ -903,9 +903,12 @@ class StaffAccountRepository(
             }
 
             if (targetAccount == null) {
-                return Result.failure(
-                    IllegalArgumentException("بيانات الدخول غير صحيحة! تأكد من البريد/الاسم والرمز السري الخاص بالحساب.")
-                )
+                val errorMsg = if (Firebase.auth.currentUser == null) {
+                    "لم يتم العثور على هذا الحساب محلياً على هذا الهاتف. إذا أنشأ المالك حسابك كمدير مستقل، يرجى الضغط على «تسجيل الدخول بحساب Google» بنفس هذا البريد للمزامنة السحابية فوراً."
+                } else {
+                    "بيانات الدخول غير صحيحة! تأكد من البريد/الاسم والرمز السري الخاص بالحساب."
+                }
+                return Result.failure(IllegalArgumentException(errorMsg))
             }
 
             // Validate Secret PIN
@@ -1636,7 +1639,23 @@ class StaffAccountRepository(
             } else {
                 null
             }
-            val preSnap = if (mgrSnap.exists()) mgrSnap else wrkSnap
+            val preSnap = when {
+                mgrSnap.exists() -> mgrSnap
+                wrkSnap?.exists() == true -> wrkSnap
+                else -> {
+                    // Query by exact email if doc ID was formatted differently
+                    try {
+                        val emailQuery = db.collection(COLLECTION_STAFF)
+                            .whereEqualTo("email", email)
+                            .get()
+                            .await()
+                        emailQuery.documents.firstOrNull { it.id != uid }
+                    } catch (qe: Exception) {
+                        Log.w("StaffRepo", "Fallback email query encountered exception: ${qe.message}")
+                        null
+                    }
+                }
+            }
             val preAccount = preSnap?.let { StaffAccount.fromSnapshot(it) }
 
             if (preAccount != null && preAccount.isApproved) {
@@ -1689,11 +1708,20 @@ class StaffAccountRepository(
                     }
                 }
                 val freshSnap = uidRef.get().await()
-                Result.success(StaffAccount.fromSnapshot(freshSnap))
+                val claimedResult = StaffAccount.fromSnapshot(freshSnap)
+                if (claimedResult != null) {
+                    val targetCtx = appContext ?: com.example.AFStoreApplication.instance
+                    if (targetCtx != null) {
+                        saveAccountToLocalRegistry(targetCtx, claimedResult)
+                    }
+                    Log.i("StaffRepo", "Successfully claimed pre-approved manager account: ${claimedResult.fullName} (${claimedResult.role}) for UID: $uid")
+                }
+                Result.success(claimedResult)
             } else {
                 Result.success(null)
             }
         } catch (e: Exception) {
+            Log.e("StaffRepo", "Error claiming pre-approved manager account: ${e.message}", e)
             Result.success(null)
         }
     }

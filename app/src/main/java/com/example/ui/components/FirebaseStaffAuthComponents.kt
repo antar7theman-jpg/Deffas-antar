@@ -457,6 +457,7 @@ fun FirebaseAuthAndApprovalGate(
         else -> {
             FirebaseStaffSignInScreen(
                 storeName = storeName,
+                credentialManager = credentialManager,
                 keepSessionOpen = keepSessionOpen,
                 onKeepSessionOpenChange = { enabled ->
                     keepSessionOpen = enabled
@@ -821,6 +822,7 @@ private fun DirectVerifiedOwnerSessionGate(
 @Composable
 private fun FirebaseStaffSignInScreen(
     storeName: String,
+    credentialManager: CredentialManager,
     keepSessionOpen: Boolean,
     onKeepSessionOpenChange: (Boolean) -> Unit,
     errorMessage: String?,
@@ -1007,6 +1009,60 @@ private fun FirebaseStaffSignInScreen(
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Normal,
                                     color = Color.White.copy(alpha = 0.92f)
+                                )
+                            }
+                        }
+
+                        // Cyan / Blue Google Cloud Sync Button for Managers & Staff
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFF0284C7),
+                            shadowElevation = 4.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onClearError()
+                                    onGoogleSignInClicked(
+                                        context = context,
+                                        credentialManager = credentialManager,
+                                        onAuthSuccess = onAuthSuccess,
+                                        onAuthError = onAuthError,
+                                        onAuthCancelled = {},
+                                        scope = coroutineScope
+                                    )
+                                }
+                                .testTag("welcome_google_sync_button")
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 15.dp, horizontal = 20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "دخول سريع بحساب Google",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp,
+                                        color = Color.White
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = "مزامنة سحابية للمدير والموظفين",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = "دخول فوري للمدير المستقل المعتمد من المالك والمزامنة سحابياً",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color.White.copy(alpha = 0.94f)
                                 )
                             }
                         }
@@ -1519,6 +1575,72 @@ private fun FirebaseStaffSignInScreen(
                         }
 
                         
+
+                        // Divider with text "أو عبر المزامنة السحابية"
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Text(
+                                text = " أو عبر المزامنة السحابية ",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        }
+
+                        // Google Sign-In Button for Managers & Staff
+                        Button(
+                            onClick = {
+                                onClearError()
+                                onGoogleSignInClicked(
+                                    context = context,
+                                    credentialManager = credentialManager,
+                                    onAuthSuccess = onAuthSuccess,
+                                    onAuthError = onAuthError,
+                                    onAuthCancelled = {},
+                                    scope = coroutineScope
+                                )
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (semantic.isDark) Color(0xFF0369A1) else Color(0xFF0284C7),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .testTag("google_signin_manager_btn")
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudSync,
+                                    contentDescription = "تسجيل الدخول بحساب Google",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "تسجيل الدخول بحساب Google (المدير المستقل)",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.5.sp,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "المزامنة السحابية الفورية للمدير المعتمد من المالك",
+                                        fontSize = 10.sp,
+                                        color = Color.White.copy(alpha = 0.9f)
+                                    )
+                                }
+                            }
+                        }
 
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 2.dp),
@@ -3896,7 +4018,7 @@ fun StaffAccountsManagementModal(
                         onLocalRegistryUpdated()
                         onOwnerCreatedManager(created, managerPin)
                         showCreateManagerDialog = false
-                        actionFeedbackMessage = "تم إنشاء واعتماد ملف المدير المستقل «$fullName» ($branchName) بنجاح ✓"
+                        actionFeedbackMessage = "تم إنشاء واعتماد ملف المدير المستقل «$fullName» ($branchName) بنجاح ✓. يستطيع المدير الآن فتح التطبيق من هاتفه واختيار «تسجيل الدخول بحساب Google» ($email) للدخول الفوري ومزامنة المتجر."
                     } else {
                         actionFeedbackMessage = res.exceptionOrNull()?.localizedMessage ?: "تعذر إنشاء ملف المدير المستقل"
                     }
@@ -4159,6 +4281,32 @@ private fun CreateManagerByOwnerDialog(
                         .fillMaxWidth()
                         .testTag("new_manager_email_input")
                 )
+
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF0284C7).copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, Color(0xFF0284C7).copy(alpha = 0.35f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Color(0xFF0284C7),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "للمزامنة السحابية الفورية: أدخل نفس بريد Google الخاص بهاتف المدير، ليتمكن من الدخول فوراً بضغطة زر واحدة.",
+                            fontSize = 11.sp,
+                            color = if (semantic.isDark) Color(0xFFBAE6FD) else Color(0xFF0369A1),
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(

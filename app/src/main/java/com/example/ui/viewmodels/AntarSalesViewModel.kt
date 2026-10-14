@@ -21,6 +21,7 @@ import com.example.data.models.Sale
 import com.example.data.models.User
 import com.example.data.models.UserRole
 import com.example.R
+import com.example.data.firebase.LiveInventorySyncManager
 import com.example.data.firebase.StaffAccount
 import com.example.data.firebase.StaffAccountRepository
 import com.example.data.firebase.StaffApprovalStatus
@@ -129,6 +130,11 @@ class AntarSalesViewModel(
 
     private val prefs = application.getSharedPreferences("af_store_prefs", Context.MODE_PRIVATE)
     private val staffAccountRepository = StaffAccountRepository(application)
+    val liveInventorySyncManager = LiveInventorySyncManager(application, viewModelScope)
+    private var activeStaffAccount: StaffAccount? = null
+
+    val isLiveInventorySyncActive: StateFlow<Boolean> = liveInventorySyncManager.isLiveSyncActive
+    val liveInventorySyncTimestamp: StateFlow<Long> = liveInventorySyncManager.lastSyncTimestamp
 
     // Reactive Data Streams from Room (kept warm with SharingStarted.Eagerly for 0ms tab switches)
     val products: StateFlow<List<Product>> = repository.allProductsFlow
@@ -534,6 +540,7 @@ class AntarSalesViewModel(
     }
 
     fun syncAuthenticatedFirebaseStaffAccount(account: StaffAccount) {
+        activeStaffAccount = account
         val localUser = account.toLocalRoomUser().copy(
             storeName = account.branchName.ifBlank { _storeName.value }
         )
@@ -544,6 +551,11 @@ class AntarSalesViewModel(
             prevUser.fullName != localUser.fullName
         ) {
             _currentUser.value = localUser
+        }
+
+        // Start real-time Firestore sync between manager and affiliated workers
+        liveInventorySyncManager.startLiveInventorySync(account) { statusMsg ->
+            showStatusMessage(statusMsg)
         }
     }
 
@@ -1885,10 +1897,27 @@ class AntarSalesViewModel(
 
             _lastCompletedInvoice.value = invoice
             clearCart()
+
+            // Push real-time stock deductions to cloud for all workers
+            launch(Dispatchers.IO) {
+                val deductions = items.map { cartItem ->
+                    val unitsDeducted = cartItem.effectiveUnitsDeducted
+                    val newStock = (cartItem.product.stock - unitsDeducted).coerceAtLeast(0)
+                    LiveInventorySyncManager.StockDeduction(
+                        productId = cartItem.product.id,
+                        barcode = cartItem.product.barcode,
+                        firestoreId = cartItem.product.firestoreId,
+                        unitsDeducted = unitsDeducted,
+                        resultingStock = newStock
+                    )
+                }
+                liveInventorySyncManager.pushBatchStockDeductions(deductions, activeStaffAccount)
+            }
+
             if (newlyLowStockItems.isNotEmpty()) {
                 showStatusMessage("⚠️ تنبيه نقص مخزون: ${newlyLowStockItems.joinToString(" • ")} دون الحد الأدنى للطلب!")
             } else {
-                showStatusMessage("تم حفظ وإصدار الفاتورة ${invoice.invoiceId} بنجاح ✅")
+                showStatusMessage("تم حفظ وإصدار الفاتورة ${invoice.invoiceId} ومزامنة المخزون بنجاح ✅")
             }
             onSuccess(invoice)
         }
@@ -1911,7 +1940,11 @@ class AntarSalesViewModel(
                 actionType = "PRODUCT_UPSERT",
                 description = "حفظ/تحديث الصنف: ${product.name} (المخزون: ${product.stock})"
             )
-            showStatusMessage("تم حفظ بيانات الصنف (${product.name}) بنجاح ✅")
+            // Push real-time to cloud for all workers
+            launch(Dispatchers.IO) {
+                liveInventorySyncManager.pushProductToCloud(persistedProduct, activeStaffAccount)
+            }
+            showStatusMessage("تم حفظ بيانات الصنف (${product.name}) ومزامنته سحابياً بنجاح ✅")
         }
     }
 
@@ -1926,7 +1959,21 @@ class AntarSalesViewModel(
                 description = "إضافة مخزون سريع للصنف: ${product.name} (+$safeAdded وحدة | الرصيد الجديد: $newStock)",
                 metadata = "productId=${product.id};addedUnits=$safeAdded;newStock=$newStock"
             )
-            showStatusMessage("تم تزويد مخزون (${product.name}) بـ +$safeAdded وحدة ✅")
+            launch(Dispatchers.IO) {
+                liveInventorySyncManager.pushBatchStockIncreases(
+                    listOf(
+                        LiveInventorySyncManager.StockIncrease(
+                            productId = product.id,
+                            barcode = product.barcode,
+                            firestoreId = product.firestoreId,
+                            unitsAdded = safeAdded,
+                            resultingStock = newStock
+                        )
+                    ),
+                    activeStaffAccount
+                )
+            }
+            showStatusMessage("تم تزويد مخزون (${product.name}) بـ +$safeAdded وحدة ومزامنته فورياً ✅")
         }
     }
 
@@ -1938,7 +1985,10 @@ class AntarSalesViewModel(
                 actionType = "PRODUCT_DELETED",
                 description = "حذف الصنف: ${product.name}"
             )
-            showStatusMessage("تم نقل الصنف (${product.name}) إلى المحذوفات")
+            launch(Dispatchers.IO) {
+                liveInventorySyncManager.deleteProductFromCloud(product, activeStaffAccount)
+            }
+            showStatusMessage("تم نقل الصنف (${product.name}) إلى المحذوفات ومزامنته")
         }
     }
 
@@ -2111,7 +2161,34 @@ class AntarSalesViewModel(
                 actionType = "PURCHASE_INVOICE",
                 description = "تسجيل فاتورة مشتريات ${inv.invoiceNumber} من المورد ${inv.supplierName}"
             )
-            showStatusMessage("تم حفظ فاتورة المشتريات وتحديث كميات المخزون")
+            // Push real-time stock increases to cloud for all workers
+            launch(Dispatchers.IO) {
+                val currentProds = repository.getAllProductsOnce().associateBy { it.id }
+                val increases = mutableListOf<LiveInventorySyncManager.StockIncrease>()
+                for (it in items) {
+                    val matching = currentProds.values.find { p ->
+                        (it.productId != null && it.productId > 0 && p.id == it.productId) ||
+                        (it.barcode.isNotBlank() && (p.barcode == it.barcode || p.cartonBarcode == it.barcode)) ||
+                        p.name.equals(it.productName, ignoreCase = true)
+                    }
+                    if (matching != null) {
+                        liveInventorySyncManager.pushProductToCloud(matching, activeStaffAccount)
+                        increases.add(
+                            LiveInventorySyncManager.StockIncrease(
+                                productId = matching.id,
+                                barcode = matching.barcode,
+                                firestoreId = matching.firestoreId,
+                                unitsAdded = if (it.isCarton) it.quantity * it.unitsPerCarton else it.quantity,
+                                resultingStock = matching.stock
+                            )
+                        )
+                    }
+                }
+                if (increases.isNotEmpty()) {
+                    liveInventorySyncManager.pushBatchStockIncreases(increases, activeStaffAccount)
+                }
+            }
+            showStatusMessage("تم حفظ فاتورة المشتريات ومزامنة كميات المخزون سحابياً بنجاح ✅")
         }
     }
 

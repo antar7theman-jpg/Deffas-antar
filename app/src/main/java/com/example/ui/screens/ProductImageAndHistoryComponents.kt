@@ -176,6 +176,14 @@ object ProductImageStorageHelper {
     fun resolveImageModel(imagePath: String): Any? {
         val trimmed = imagePath.trim()
         if (trimmed.isEmpty()) return null
+        if (trimmed.startsWith("data:image/") || (trimmed.contains(";base64,") && trimmed.length > 50)) {
+            val raw = if (trimmed.contains(",")) trimmed.substringAfter(",") else trimmed
+            return try {
+                android.util.Base64.decode(raw, android.util.Base64.DEFAULT)
+            } catch (_: Exception) {
+                null
+            }
+        }
         if (trimmed.startsWith("content://") || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
             return Uri.parse(trimmed)
         }

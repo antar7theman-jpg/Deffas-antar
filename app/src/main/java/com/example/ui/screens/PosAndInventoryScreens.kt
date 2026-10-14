@@ -2438,8 +2438,8 @@ fun InventoryScreen(
                 Surface(
                     onClick = { showVignetteScanner = true },
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFFEF2F2),
-                    border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                    color = Color(0xFFF0F9FF),
+                    border = BorderStroke(1.dp, Color(0xFF38BDF8)),
                     modifier = Modifier.testTag("inventory_scan_vignette_btn")
                 ) {
                     Row(
@@ -2449,11 +2449,11 @@ fun InventoryScreen(
                     ) {
                         Icon(
                             Icons.Default.CameraAlt,
-                            contentDescription = "مسح لافينيات الدواء",
-                            tint = Color(0xFFEF4444),
+                            contentDescription = "مسح فواتير الشراء والوصولات OCR",
+                            tint = Color(0xFF0284C7),
                             modifier = Modifier.size(16.dp)
                         )
-                        Text("كاميرا اللافينيات OCR", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
+                        Text("ماسح فواتير ووصولات الشراء (OCR) 📄", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                     }
                 }
 
@@ -2867,13 +2867,15 @@ fun InventoryScreen(
                 if (matched != null) {
                     val updated = matched.copy(
                         price = if (extracted.price > 0.0) extracted.price else matched.price,
+                        purchasePrice = if (extracted.price > 0.0 && matched.purchasePrice <= 0.0) extracted.price else matched.purchasePrice,
                         barcode = if (extracted.barcode.isNotBlank() && matched.barcode.isBlank()) extracted.barcode else matched.barcode
                     )
                     viewModel.saveProduct(updated)
                 } else {
                     editingProduct = Product(
-                        name = extracted.productName.ifBlank { "منتج صيدلاني جديد" },
+                        name = extracted.productName.ifBlank { "سلعة مستخرجة عبر الفاتورة" },
                         price = extracted.price,
+                        purchasePrice = extracted.price,
                         barcode = extracted.barcode
                     )
                     showProductDialog = true

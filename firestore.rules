@@ -11,20 +11,91 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isValidLocation(data) {
-      return data.lat is float && 
-             data.lng is float && 
-             data.timestamp is int;
+    function isStaffMember() {
+      return isSignedIn() && exists(/databases/$(database)/documents/staff_accounts/$(request.auth.uid));
     }
 
+    function getStaffDoc(uid) {
+      return get(/databases/$(database)/documents/staff_accounts/$(uid)).data;
+    }
+
+    function isManagerOrOwner() {
+      return isStaffMember() && 
+             (getStaffDoc(request.auth.uid).role == 'owner' || 
+              getStaffDoc(request.auth.uid).role == 'manager');
+    }
+
+    function isApprovedStaff() {
+      return isStaffMember() && 
+             (getStaffDoc(request.auth.uid).approvalStatus == 'APPROVED' || 
+              getStaffDoc(request.auth.uid).role == 'owner' || 
+              getStaffDoc(request.auth.uid).role == 'manager');
+    }
+
+    // Staff accounts collection (Employees, Managers & Owner accounts)
+    match /staff_accounts/{staffUid} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && (
+        request.auth.uid == staffUid || 
+        isManagerOrOwner() || 
+        staffUid.matches('^mgr_.*') || 
+        staffUid.matches('^wrk_.*')
+      );
+      allow delete: if isSignedIn() && (
+        isManagerOrOwner() || 
+        request.auth.uid == staffUid || 
+        staffUid.matches('^mgr_.*') || 
+        staffUid.matches('^wrk_.*')
+      );
+    }
+
+    // Admins collection
+    match /admins/{adminUid} {
+      allow read, write: if isSignedIn() && (request.auth.uid == adminUid || isManagerOrOwner());
+    }
+
+    // User data, inventories, sales, and invoices
     match /users/{userId} {
-      allow get, list: if isOwner(userId);
-      allow create, update: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isManagerOrOwner();
+
+      match /location_history/{locationId} {
+        allow read, write: if isOwner(userId) || isManagerOrOwner();
+      }
+
+      match /products/{productId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId) || isApprovedStaff();
+      }
+
+      match /sales/{saleId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId) || isApprovedStaff();
+      }
+
+      match /customers/{customerId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId) || isApprovedStaff();
+      }
+
+      match /purchase_invoices/{invoiceId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId) || isApprovedStaff();
+      }
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId) || isManagerOrOwner();
+      }
     }
 
-    match /users/{userId}/location_history/{locationId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidLocation(request.resource.data);
+    // Shared multi-device store catalog & operations
+    match /stores/{storeId} {
+      allow read: if isSignedIn();
+      allow write: if isManagerOrOwner();
+
+      match /{allChildren=**} {
+        allow read: if isSignedIn();
+        allow write: if isApprovedStaff();
+      }
     }
   }
 }

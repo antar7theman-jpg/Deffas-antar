@@ -1,37 +1,109 @@
 {
   "entities": {
-    "User": {
-      "title": "User",
-      "description": "User profile and settings",
+    "StaffAccount": {
+      "title": "Staff Account",
+      "description": "Multi-role store employee and manager profile with permissions",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
+        "storeId": { "type": "string" },
+        "email": { "type": "string" },
         "fullName": { "type": "string" },
-        "role": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner", "manager", "worker", "cashier"] },
+        "requestedRole": { "type": "string" },
+        "approvalStatus": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED", "SUSPENDED"] },
+        "approvedByUid": { "type": "string" },
+        "parentManagerUid": { "type": "string" },
+        "activeDeviceId": { "type": "string" },
+        "activeDeviceName": { "type": "string" },
+        "canMakeSales": { "type": "boolean" },
+        "canManageInventory": { "type": "boolean" },
+        "canEditPrices": { "type": "boolean" },
+        "canViewReports": { "type": "boolean" },
+        "canManageDebtsAndCustomers": { "type": "boolean" },
+        "canRefundOrVoid": { "type": "boolean" },
+        "canApplyDiscounts": { "type": "boolean" },
+        "canViewCostPrices": { "type": "boolean" },
+        "canExportData": { "type": "boolean" },
+        "canManagePurchaseInvoices": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
       },
-      "required": ["userId", "fullName", "role", "createdAt"]
+      "required": ["userId", "storeId", "email", "role", "approvalStatus"]
     },
-    "Location": {
-      "title": "Location",
-      "description": "Worker location coordinate",
+    "FirestoreProduct": {
+      "title": "Product",
+      "description": "Synchronized inventory product item in store catalog",
       "type": "object",
       "properties": {
-        "lat": { "type": "number" },
-        "lng": { "type": "number" },
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "barcode": { "type": "string" },
+        "cartonBarcode": { "type": "string" },
+        "price": { "type": "number" },
+        "purchasePrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "unitsPerCarton": { "type": "integer" },
+        "category": { "type": "string" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "name", "price", "stock"]
+    },
+    "PurchaseInvoice": {
+      "title": "Purchase Invoice",
+      "description": "Supplier purchase invoice or paper receipt extracted via OCR or entered manually",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "invoiceDate": { "type": "string" },
+        "totalCost": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingDebt": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "supplierName", "totalCost"]
+    },
+    "SaleTransaction": {
+      "title": "Sale Transaction",
+      "description": "Customer sales transaction completed at POS",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "cashierUid": { "type": "string" },
+        "cashierName": { "type": "string" },
         "timestamp": { "type": "number" }
       },
-      "required": ["lat", "lng", "timestamp"]
+      "required": ["id", "totalAmount", "timestamp"]
     }
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": { "$ref": "User" },
-      "description": "User data"
+    "/staff_accounts/{userId}": {
+      "schema": { "$ref": "StaffAccount" },
+      "description": "Store employees and managerial role credentials"
     },
-    "/users/{userId}/location_history/{locationId}": {
-      "schema": { "$ref": "Location" },
-      "description": "Worker location history"
+    "/admins/{userId}": {
+      "schema": { "$ref": "StaffAccount" },
+      "description": "Store owners and high-privilege administrators"
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": { "$ref": "FirestoreProduct" },
+      "description": "Per-account or store products inventory"
+    },
+    "/users/{userId}/purchase_invoices/{invoiceId}": {
+      "schema": { "$ref": "PurchaseInvoice" },
+      "description": "Supplier purchase invoices"
+    },
+    "/users/{userId}/sales/{saleId}": {
+      "schema": { "$ref": "SaleTransaction" },
+      "description": "Sales records"
+    },
+    "/stores/{storeId}/products/{productId}": {
+      "schema": { "$ref": "FirestoreProduct" },
+      "description": "Shared multi-device store catalog"
     }
   }
 }
