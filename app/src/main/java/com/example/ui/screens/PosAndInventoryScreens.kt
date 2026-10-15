@@ -398,47 +398,6 @@ fun PosScreen(
                     shape = RoundedCornerShape(14.dp)
                 )
 
-                // Toggle Inline Live Camera Scanner Dock (CameraX + ZXing)
-                Button(
-                    onClick = {
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
-                        val next = !isInlineScannerOpen
-                        isInlineScannerOpen = next
-                        ScannerPreferencesManager.setInlinePosCameraEnabled(context, next)
-                    },
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(
-                        width = 1.2.dp,
-                        color = if (isInlineScannerOpen) {
-                            Color(0xFF047857)
-                        } else {
-                            MaterialTheme.colorScheme.secondary.copy(alpha = if (semantic.isDark) 0.55f else 0.78f)
-                        }
-                    ),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isInlineScannerOpen) Color(0xFF10B981) else MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = if (isInlineScannerOpen) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
-                    ),
-                    contentPadding = PaddingValues(horizontal = if (isWideScreen) 12.dp else 9.dp, vertical = 0.dp),
-                    modifier = Modifier
-                        .height(52.dp)
-                        .testTag("pos_toggle_inline_camera_btn")
-                ) {
-                    Icon(
-                        Icons.Default.CameraAlt,
-                        contentDescription = "الكاميرا المدمجة الحية",
-                        modifier = Modifier.size(if (isWideScreen) 20.dp else 17.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (isInlineScannerOpen) "إخفاء الكاميرا" else "كاميرا حية",
-                        fontSize = if (isWideScreen) 13.sp else 11.5.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
 
                 // Open Fullscreen Barcode Scanner Modal
                 Button(

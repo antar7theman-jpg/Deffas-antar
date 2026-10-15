@@ -23,6 +23,12 @@ import android.print.PrintManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -957,16 +963,25 @@ fun SalesReportPdfPreviewDialog(
         onDismissRequest = { if (!isWorking) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 14.dp)
-                .testTag("sales_report_pdf_preview_dialog"),
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        ) {
+        CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Rtl) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+                    .wrapContentSize(Alignment.Center),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth(0.95f)
+                        .fillMaxHeight(0.90f)
+                        .padding(horizontal = 4.dp, vertical = 6.dp)
+                        .testTag("sales_report_pdf_preview_dialog"),
+                    shape = RoundedCornerShape(22.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Dialog Top Bar
                 Surface(
@@ -1347,16 +1362,18 @@ fun SalesReportPdfPreviewDialog(
 
                 HorizontalDivider()
 
-                // Bottom Action Bar: Print | Share PDF | Save to Phone
+                // Bottom Action Bar: Print | Share PDF | Save to Phone (Raised up from bottom)
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 4.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         if (isWorking) {
                             Row(
@@ -1371,8 +1388,11 @@ fun SalesReportPdfPreviewDialog(
                         }
 
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             // 1. Print Report directly via Android PrintManager
                             Button(
@@ -1380,24 +1400,24 @@ fun SalesReportPdfPreviewDialog(
                                     SalesReportPdfExporter.printReport(context, payload)
                                 },
                                 enabled = !isWorking,
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF0284C7),
                                     contentColor = Color.White
                                 ),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(42.dp)
+                                    .height(48.dp)
                                     .testTag("pdf_action_print_button")
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Print,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("طباعة", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, maxLines = 1, softWrap = false)
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text("طباعة", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, maxLines = 1, softWrap = false)
                             }
 
                             // 2. Share PDF via FileProvider
@@ -1413,24 +1433,24 @@ fun SalesReportPdfPreviewDialog(
                                     }
                                 },
                                 enabled = !isWorking,
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF059669),
                                     contentColor = Color.White
                                 ),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(42.dp)
+                                    .height(48.dp)
                                     .testTag("pdf_action_share_button")
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Share,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("مشاركة", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, maxLines = 1, softWrap = false)
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text("مشاركة", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, maxLines = 1, softWrap = false)
                             }
 
                             // 3. Save PDF to Device Storage
@@ -1439,27 +1459,29 @@ fun SalesReportPdfPreviewDialog(
                                     savePdfDocumentLauncher.launch(payload.suggestedFileName)
                                 },
                                 enabled = !isWorking,
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(42.dp)
+                                    .height(48.dp)
                                     .testTag("pdf_action_save_button")
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Download,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("حفظ", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, maxLines = 1, softWrap = false)
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text("حفظ", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, maxLines = 1, softWrap = false)
                             }
                         }
                     }
                 }
             }
         }
+      }
     }
+  }
 }
 
 @Composable

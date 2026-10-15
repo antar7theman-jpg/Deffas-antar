@@ -3967,7 +3967,7 @@ fun StaffAccountsManagementModal(
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 18.dp),
+                            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 34.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {

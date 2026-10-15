@@ -82,6 +82,25 @@ data class BluetoothPrinterDeviceInfo(
     val address: String = ""
 )
 
+enum class ThermalFontThickness(
+    val id: String,
+    val labelAr: String,
+    val bodyWeight: FontWeight,
+    val headerWeight: FontWeight,
+    val totalWeight: FontWeight,
+    val strokeMultiplier: Float
+) {
+    NORMAL("NORMAL", "عادي", FontWeight.Normal, FontWeight.Bold, FontWeight.Bold, 1.0f),
+    MEDIUM("MEDIUM", "متوسط", FontWeight.SemiBold, FontWeight.ExtraBold, FontWeight.ExtraBold, 1.3f),
+    EXTRA_BOLD("EXTRA_BOLD", "عريض داكن", FontWeight.Bold, FontWeight.Black, FontWeight.Black, 1.7f);
+
+    companion object {
+        fun fromId(id: String?): ThermalFontThickness {
+            return entries.find { it.id.equals(id, ignoreCase = true) } ?: NORMAL
+        }
+    }
+}
+
 data class ThermalPrinterConfig(
     val paperWidth: ThermalPaperWidth = ThermalPaperWidth.WIDTH_80MM,
     val autoReconnect: Boolean = false,
@@ -98,21 +117,119 @@ data class ThermalPrinterConfig(
     val feedLinesAfterPrint: Int = 3,
     val characterEncoding: String = "UTF-8",
     val checkoutPrintMode: CheckoutThermalPrintMode = CheckoutThermalPrintMode.INSTANT_PRINT,
-    val defaultCopies: Int = copyCount
+    val defaultCopies: Int = copyCount,
+    val fontThickness: ThermalFontThickness = ThermalFontThickness.NORMAL
 ) {
     companion object {
-        fun loadFromPrefs(prefs: Any?): ThermalPrinterConfig = ThermalPrinterConfig()
-        fun saveToPrefs(prefs: Any?, config: ThermalPrinterConfig) {}
+        private const val PREF_KEY_PAPER_WIDTH = "thermal_paper_width"
+        private const val PREF_KEY_AUTO_RECONNECT = "thermal_auto_reconnect"
+        private const val PREF_KEY_LAST_ADDRESS = "thermal_last_address"
+        private const val PREF_KEY_LAST_NAME = "thermal_last_name"
+        private const val PREF_KEY_AUTO_CHECKOUT = "thermal_auto_checkout"
+        private const val PREF_KEY_PRINT_LOGO = "thermal_print_logo"
+        private const val PREF_KEY_PRINT_QR = "thermal_print_qr"
+        private const val PREF_KEY_FONT_THICKNESS = "thermal_font_thickness"
+
+        fun loadFromPrefs(prefs: Any?): ThermalPrinterConfig {
+            val sp = prefs as? android.content.SharedPreferences ?: return ThermalPrinterConfig()
+            val widthMm = sp.getInt(PREF_KEY_PAPER_WIDTH, 80)
+            return ThermalPrinterConfig(
+                paperWidthMm = widthMm,
+                paperWidth = if (widthMm == 58) ThermalPaperWidth.WIDTH_58MM else ThermalPaperWidth.WIDTH_80MM,
+                autoReconnect = sp.getBoolean(PREF_KEY_AUTO_RECONNECT, false),
+                lastPrinterAddress = sp.getString(PREF_KEY_LAST_ADDRESS, "") ?: "",
+                lastPrinterName = sp.getString(PREF_KEY_LAST_NAME, "") ?: "",
+                autoPrintOnCheckout = sp.getBoolean(PREF_KEY_AUTO_CHECKOUT, true),
+                printStoreLogo = sp.getBoolean(PREF_KEY_PRINT_LOGO, true),
+                printQrCode = sp.getBoolean(PREF_KEY_PRINT_QR, true),
+                fontThickness = ThermalFontThickness.fromId(sp.getString(PREF_KEY_FONT_THICKNESS, "NORMAL"))
+            )
+        }
+
+        fun saveToPrefs(prefs: Any?, config: ThermalPrinterConfig) {
+            val sp = prefs as? android.content.SharedPreferences ?: return
+            sp.edit()
+                .putInt(PREF_KEY_PAPER_WIDTH, config.paperWidthMm)
+                .putBoolean(PREF_KEY_AUTO_RECONNECT, config.autoReconnect)
+                .putString(PREF_KEY_LAST_ADDRESS, config.lastPrinterAddress)
+                .putString(PREF_KEY_LAST_NAME, config.lastPrinterName)
+                .putBoolean(PREF_KEY_AUTO_CHECKOUT, config.autoPrintOnCheckout)
+                .putBoolean(PREF_KEY_PRINT_LOGO, config.printStoreLogo)
+                .putBoolean(PREF_KEY_PRINT_QR, config.printQrCode)
+                .putString(PREF_KEY_FONT_THICKNESS, config.fontThickness.id)
+                .apply()
+        }
     }
 }
 
 data class DesktopPrinterConfig(
-    val enabled: Boolean = false,
-    val defaultPaperSize: String = "A4"
+    val enabled: Boolean = true,
+    val defaultPaperSize: String = "A4", // "A4" or "A5"
+    val orientation: String = "PORTRAIT", // "PORTRAIT" or "LANDSCAPE"
+    val marginType: String = "NORMAL", // "NARROW" (5mm), "NORMAL" (10mm), "WIDE" (15mm)
+    val copiesCount: Int = 1,
+    val printStoreHeader: Boolean = true,
+    val printStoreLogo: Boolean = true,
+    val printQrCode: Boolean = true,
+    val printSellerName: Boolean = true,
+    val printCustomerInfo: Boolean = true,
+    val autoPrintOnSaleComplete: Boolean = false,
+    val inkSavingMode: Boolean = false,
+    val customFooterText: String = "شكراً لتعاملكم معنا - البضاعة المباعة لا ترد ولا تستبدل إلا بالفاتورة"
 ) {
     companion object {
-        fun loadFromPrefs(prefs: Any?): DesktopPrinterConfig = DesktopPrinterConfig()
-        fun saveToPrefs(prefs: Any?, config: DesktopPrinterConfig) {}
+        private const val PREF_KEY_ENABLED = "desktop_printer_enabled"
+        private const val PREF_KEY_PAPER_SIZE = "desktop_printer_paper_size"
+        private const val PREF_KEY_ORIENTATION = "desktop_printer_orientation"
+        private const val PREF_KEY_MARGIN = "desktop_printer_margin"
+        private const val PREF_KEY_COPIES = "desktop_printer_copies"
+        private const val PREF_KEY_PRINT_HEADER = "desktop_printer_header"
+        private const val PREF_KEY_PRINT_LOGO = "desktop_printer_logo"
+        private const val PREF_KEY_PRINT_QR = "desktop_printer_qr"
+        private const val PREF_KEY_PRINT_SELLER = "desktop_printer_seller"
+        private const val PREF_KEY_PRINT_CUSTOMER = "desktop_printer_customer"
+        private const val PREF_KEY_AUTO_PRINT = "desktop_printer_auto_print"
+        private const val PREF_KEY_INK_SAVING = "desktop_printer_ink_saving"
+        private const val PREF_KEY_FOOTER_TEXT = "desktop_printer_footer_text"
+
+        fun loadFromPrefs(prefs: Any?): DesktopPrinterConfig {
+            val sp = prefs as? android.content.SharedPreferences ?: return DesktopPrinterConfig()
+            return DesktopPrinterConfig(
+                enabled = sp.getBoolean(PREF_KEY_ENABLED, true),
+                defaultPaperSize = sp.getString(PREF_KEY_PAPER_SIZE, "A4") ?: "A4",
+                orientation = sp.getString(PREF_KEY_ORIENTATION, "PORTRAIT") ?: "PORTRAIT",
+                marginType = sp.getString(PREF_KEY_MARGIN, "NORMAL") ?: "NORMAL",
+                copiesCount = sp.getInt(PREF_KEY_COPIES, 1),
+                printStoreHeader = sp.getBoolean(PREF_KEY_PRINT_HEADER, true),
+                printStoreLogo = sp.getBoolean(PREF_KEY_PRINT_LOGO, true),
+                printQrCode = sp.getBoolean(PREF_KEY_PRINT_QR, true),
+                printSellerName = sp.getBoolean(PREF_KEY_PRINT_SELLER, true),
+                printCustomerInfo = sp.getBoolean(PREF_KEY_PRINT_CUSTOMER, true),
+                autoPrintOnSaleComplete = sp.getBoolean(PREF_KEY_AUTO_PRINT, false),
+                inkSavingMode = sp.getBoolean(PREF_KEY_INK_SAVING, false),
+                customFooterText = sp.getString(PREF_KEY_FOOTER_TEXT, "شكراً لتعاملكم معنا - البضاعة المباعة لا ترد ولا تستبدل إلا بالفاتورة")
+                    ?: "شكراً لتعاملكم معنا - البضاعة المباعة لا ترد ولا تستبدل إلا بالفاتورة"
+            )
+        }
+
+        fun saveToPrefs(prefs: Any?, config: DesktopPrinterConfig) {
+            val sp = prefs as? android.content.SharedPreferences ?: return
+            sp.edit()
+                .putBoolean(PREF_KEY_ENABLED, config.enabled)
+                .putString(PREF_KEY_PAPER_SIZE, config.defaultPaperSize)
+                .putString(PREF_KEY_ORIENTATION, config.orientation)
+                .putString(PREF_KEY_MARGIN, config.marginType)
+                .putInt(PREF_KEY_COPIES, config.copiesCount)
+                .putBoolean(PREF_KEY_PRINT_HEADER, config.printStoreHeader)
+                .putBoolean(PREF_KEY_PRINT_LOGO, config.printStoreLogo)
+                .putBoolean(PREF_KEY_PRINT_QR, config.printQrCode)
+                .putBoolean(PREF_KEY_PRINT_SELLER, config.printSellerName)
+                .putBoolean(PREF_KEY_PRINT_CUSTOMER, config.printCustomerInfo)
+                .putBoolean(PREF_KEY_AUTO_PRINT, config.autoPrintOnSaleComplete)
+                .putBoolean(PREF_KEY_INK_SAVING, config.inkSavingMode)
+                .putString(PREF_KEY_FOOTER_TEXT, config.customFooterText)
+                .apply()
+        }
     }
 }
 
@@ -142,7 +259,8 @@ data class ThermalReceiptPrintPayload(
     val footerText: String = "",
     val developerContact: String = "",
     val templateStyle: Any? = null,
-    val previousDebt: Double = 0.0
+    val previousDebt: Double = 0.0,
+    val fontThickness: ThermalFontThickness = ThermalFontThickness.NORMAL
 ) {
     companion object {
         fun createSampleTestPayload(
@@ -153,7 +271,8 @@ data class ThermalReceiptPrintPayload(
             developerContact: String = "",
             paperWidth: ThermalPaperWidth = ThermalPaperWidth.WIDTH_80MM,
             storeLogoImagePath: String = "",
-            storeLogoCustomText: String = ""
+            storeLogoCustomText: String = "",
+            fontThickness: ThermalFontThickness = ThermalFontThickness.NORMAL
         ): ThermalReceiptPrintPayload = ThermalReceiptPrintPayload(
             storeName = storeName,
             storePhone = storePhone,
@@ -162,7 +281,8 @@ data class ThermalReceiptPrintPayload(
             developerContact = developerContact,
             storeLogoImagePath = storeLogoImagePath,
             storeLogoCustomText = storeLogoCustomText,
-            isTestPrint = true
+            isTestPrint = true,
+            fontThickness = fontThickness
         )
     }
 }

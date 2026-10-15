@@ -12,9 +12,25 @@ import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.Dispatchers
 
 class AFStoreApplication : Application(), ImageLoaderFactory {
+    override fun attachBaseContext(base: android.content.Context) {
+        val locale = java.util.Locale("ar")
+        java.util.Locale.setDefault(locale)
+        val config = android.content.res.Configuration(base.resources.configuration)
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        super.attachBaseContext(base.createConfigurationContext(config))
+    }
+
     override fun onCreate() {
         super.onCreate()
         instance = this
+        val locale = java.util.Locale("ar")
+        java.util.Locale.setDefault(locale)
+        val config = resources.configuration
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        @Suppress("DEPRECATION")
+        resources.updateConfiguration(config, resources.displayMetrics)
         initializeFirebase(this)
         try {
             AutoSyncWorker.schedulePeriodicSync(this)

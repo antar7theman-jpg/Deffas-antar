@@ -66,6 +66,7 @@ import com.example.data.models.formatPackagingLabel
 import com.example.ui.viewmodels.AntarSalesViewModel
 import com.example.ui.viewmodels.CartItem
 import com.example.utils.ThermalConnectionState
+import com.example.utils.ThermalFontThickness
 import com.example.utils.ThermalPaperWidth
 import com.example.utils.ThermalReceiptBitmapRenderer
 import com.example.utils.ThermalReceiptPrintPayload
@@ -376,7 +377,8 @@ fun InvoiceTemplatePreviewDialog(
             storeLogoImagePath = storeLogoImagePath,
             storeLogoCustomText = storeLogoCustomText,
             templateStyle = selectedStyle,
-            previousDebt = previousCustomerDebt
+            previousDebt = previousCustomerDebt,
+            fontThickness = thermalPrinterConfig.fontThickness
         )
     }
 
@@ -815,6 +817,56 @@ fun InvoiceTemplatePreviewDialog(
                                             }
                                         }
                                     }
+
+                                 Spacer(modifier = Modifier.height(10.dp))
+
+                                 // Font Thickness selector bar (Normal, Medium, Extra Bold)
+                                 Row(
+                                     modifier = Modifier.fillMaxWidth(),
+                                     horizontalArrangement = Arrangement.SpaceBetween,
+                                     verticalAlignment = Alignment.CenterVertically
+                                 ) {
+                                     Text(
+                                         text = "سمك خط الطباعة:",
+                                         fontSize = 12.sp,
+                                         fontWeight = FontWeight.Bold,
+                                         color = colorScheme.onSurface
+                                     )
+                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                         val thicknesses = listOf(
+                                             ThermalFontThickness.NORMAL to "عادي",
+                                             ThermalFontThickness.MEDIUM to "متوسط",
+                                             ThermalFontThickness.EXTRA_BOLD to "عريض داكن"
+                                         )
+                                         thicknesses.forEach { (thick, label) ->
+                                             val isSelected = thermalPrinterConfig.fontThickness == thick
+                                             Surface(
+                                                 onClick = {
+                                                     viewModel.updateThermalPrinterConfig(
+                                                         thermalPrinterConfig.copy(fontThickness = thick)
+                                                     )
+                                                 },
+                                                 shape = RoundedCornerShape(8.dp),
+                                                 color = if (isSelected) brandBlue else colorScheme.surfaceVariant,
+                                                 modifier = Modifier
+                                                     .height(30.dp)
+                                                     .testTag("preview_font_thickness_chip_${thick.id}")
+                                             ) {
+                                                 Box(
+                                                     modifier = Modifier.padding(horizontal = 8.dp),
+                                                     contentAlignment = Alignment.Center
+                                                 ) {
+                                                     Text(
+                                                         text = label,
+                                                         fontWeight = if (isSelected) FontWeight.Black else FontWeight.SemiBold,
+                                                         fontSize = 11.sp,
+                                                         color = if (isSelected) Color.White else colorScheme.onSurfaceVariant
+                                                     )
+                                                 }
+                                             }
+                                         }
+                                     }
+                                 }
                                 }
                             }
                         }

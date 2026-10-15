@@ -184,7 +184,24 @@ enum class MainAppTab(
 }
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: android.content.Context) {
+        val locale = java.util.Locale("ar")
+        java.util.Locale.setDefault(locale)
+        val config = android.content.res.Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        val locale = java.util.Locale("ar")
+        java.util.Locale.setDefault(locale)
+        val config = resources.configuration
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        @Suppress("DEPRECATION")
+        resources.updateConfiguration(config, resources.displayMetrics)
+        window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -474,7 +491,9 @@ fun AFStoreMainApp(
                         NavigationBar(
                             containerColor = MaterialTheme.colorScheme.surface,
                             tonalElevation = NavigationBarDefaults.Elevation,
-                            modifier = Modifier.height(66.dp)
+                            modifier = Modifier
+                                .navigationBarsPadding()
+                                .height(68.dp)
                         ) {
                             bottomBarTabs.forEach { tab ->
                                 val isSelectedTab = selectedTab == tab

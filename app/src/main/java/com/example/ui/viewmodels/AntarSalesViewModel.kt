@@ -2757,9 +2757,44 @@ class AntarSalesViewModel(
         ThermalPrinterConfig.saveToPrefs(prefs, newConfig)
     }
 
+    fun updateThermalFontThickness(thickness: com.example.utils.ThermalFontThickness) {
+        val updated = _thermalPrinterConfig.value.copy(fontThickness = thickness)
+        _thermalPrinterConfig.value = updated
+        ThermalPrinterConfig.saveToPrefs(prefs, updated)
+    }
+
     fun updateDesktopPrinterConfig(newConfig: DesktopPrinterConfig) {
         _desktopPrinterConfig.value = newConfig
         DesktopPrinterConfig.saveToPrefs(prefs, newConfig)
+    }
+
+    fun updateWorkerGpsLocation(userId: Int, workerName: String, lat: Double, lng: Double, statusNote: String = "في مهمة ميدانية") {
+        viewModelScope.launch {
+            val loc = com.example.data.models.WorkerLocation(
+                userId = userId,
+                workerName = workerName,
+                latitude = lat,
+                longitude = lng,
+                statusNote = statusNote,
+                timestamp = System.currentTimeMillis()
+            )
+            repository.updateWorkerLocation(loc)
+            try {
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                val data = hashMapOf(
+                    "userId" to userId,
+                    "workerName" to workerName,
+                    "latitude" to lat,
+                    "longitude" to lng,
+                    "statusNote" to statusNote,
+                    "timestamp" to System.currentTimeMillis()
+                )
+                db.collection("worker_locations").document(userId.toString()).set(data)
+                showStatusMessage("تم تحديث ومزامنة موقع العامل GPS مع السحابة بنجاح ✓")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun hasBluetoothConnectPermission(): Boolean =
@@ -2834,7 +2869,8 @@ class AntarSalesViewModel(
             developerContact = _developerContact.value,
             paperWidth = _thermalPrinterConfig.value.paperWidth,
             storeLogoImagePath = _storeLogoImagePath.value,
-            storeLogoCustomText = _storeLogoCustomText.value
+            storeLogoCustomText = _storeLogoCustomText.value,
+            fontThickness = _thermalPrinterConfig.value.fontThickness
         )
     }
 
@@ -3186,7 +3222,8 @@ class AntarSalesViewModel(
             storeLogoImagePath = _storeLogoImagePath.value,
             storeLogoCustomText = _storeLogoCustomText.value,
             templateStyle = _invoiceStyle.value,
-            previousDebt = customers.value.find { it.name.trim() == invoice.customerName.trim() }?.balanceDebt ?: 0.0
+            previousDebt = customers.value.find { it.name.trim() == invoice.customerName.trim() }?.balanceDebt ?: 0.0,
+            fontThickness = _thermalPrinterConfig.value.fontThickness
         )
     }
 
