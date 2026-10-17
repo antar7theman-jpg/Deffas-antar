@@ -12,6 +12,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.graphics.asImageBitmap
 import com.example.utils.CustomerLocationHelper
@@ -443,10 +446,17 @@ fun InvoiceTemplatePreviewDialog(
             decorFitsSystemWindows = false
         )
     ) {
+        BackHandler(onBack = onDismiss)
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.62f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismiss
+                )
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .imePadding()
@@ -457,7 +467,12 @@ fun InvoiceTemplatePreviewDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 620.dp)
-                    .fillMaxHeight(0.93f),
+                    .fillMaxHeight(0.93f)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { /* consume click inside card */ }
+                    ),
                 shape = RoundedCornerShape(26.dp),
                 color = colorScheme.surface,
                 contentColor = colorScheme.onSurface,

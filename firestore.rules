@@ -25,6 +25,12 @@ service cloud.firestore {
               getStaffDoc(request.auth.uid).role == 'manager');
     }
 
+    function hasSyncEnabled() {
+      return !isStaffMember() || 
+             getStaffDoc(request.auth.uid).role == 'owner' || 
+             getStaffDoc(request.auth.uid).get('syncMode', 'pro') == 'pro';
+    }
+
     function isApprovedStaff() {
       return isStaffMember() && 
              (getStaffDoc(request.auth.uid).approvalStatus == 'APPROVED' || 
@@ -56,7 +62,8 @@ service cloud.firestore {
 
     // User data, inventories, sales, and invoices
     match /users/{userId} {
-      allow read, write: if isOwner(userId) || isManagerOrOwner();
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isApprovedStaff();
 
       match /location_history/{locationId} {
         allow read, write: if isOwner(userId) || isManagerOrOwner();
@@ -64,27 +71,43 @@ service cloud.firestore {
 
       match /products/{productId} {
         allow read: if isSignedIn();
-        allow write: if isOwner(userId) || isApprovedStaff();
+        allow write: if (isOwner(userId) || isApprovedStaff()) && hasSyncEnabled();
       }
 
       match /sales/{saleId} {
         allow read: if isSignedIn();
-        allow write: if isOwner(userId) || isApprovedStaff();
+        allow write: if (isOwner(userId) || isApprovedStaff()) && hasSyncEnabled();
       }
 
       match /customers/{customerId} {
         allow read: if isSignedIn();
-        allow write: if isOwner(userId) || isApprovedStaff();
+        allow write: if (isOwner(userId) || isApprovedStaff()) && hasSyncEnabled();
       }
 
       match /purchase_invoices/{invoiceId} {
         allow read: if isSignedIn();
-        allow write: if isOwner(userId) || isApprovedStaff();
+        allow write: if (isOwner(userId) || isApprovedStaff()) && hasSyncEnabled();
+      }
+
+      match /invoices/{invoiceId} {
+        allow read: if isSignedIn();
+        allow write: if (isOwner(userId) || isApprovedStaff()) && hasSyncEnabled();
+      }
+
+      match /worker_locations/{workerId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn();
       }
 
       match /{document=**} {
         allow read, write: if isOwner(userId) || isManagerOrOwner();
       }
+    }
+
+    // Root worker locations for live team GPS tracking
+    match /worker_locations/{workerId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     // Shared multi-device store catalog & operations

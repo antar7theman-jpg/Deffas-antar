@@ -730,6 +730,14 @@ fun SettingsScreen(
             }
         }
 
+        // Live Comprehensive Cloud Sync Status Dashboard Card
+        item {
+            com.example.ui.components.LiveSyncStatusCard(
+                viewModel = viewModel,
+                myStaffAccount = myStaffAccount
+            )
+        }
+
         // Firebase Staff Accounts & Approval Center Card
         item {
             Card(

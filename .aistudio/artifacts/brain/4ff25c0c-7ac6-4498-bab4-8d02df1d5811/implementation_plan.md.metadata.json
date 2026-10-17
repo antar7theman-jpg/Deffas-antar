@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for adding QR code scanning to the Invoices Archive screen to scan and preview invoices.",
-  "updatedAt": "2026-10-16T18:29:06.481526060Z",
+  "summary": "Implementation plan for adding sync mode (Pro vs Just Offline/Lite) for managers, fixing Firestore permission errors, and adding upgrade prompt UI when sync is accessed in offline mode.",
+  "updatedAt": "2026-10-17T17:39:46.532495510Z",
   "requestFeedback": true,
   "userFacing": true
 }

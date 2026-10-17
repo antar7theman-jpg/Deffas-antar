@@ -561,10 +561,14 @@ class AntarSalesViewModel(
             _currentUser.value = localUser
         }
 
-        // Start real-time Firestore sync between manager and affiliated workers
+        // Start real-time Firestore sync between manager and affiliated workers (Products, Invoices, GPS)
         liveInventorySyncManager.startLiveInventorySync(account) { statusMsg ->
             showStatusMessage(statusMsg)
         }
+        liveInventorySyncManager.startLiveInvoicesSync(account) { statusMsg ->
+            showStatusMessage(statusMsg)
+        }
+        liveInventorySyncManager.startLiveWorkerLocationsSync(account)
     }
 
     fun saveOwnerCreatedManagerToRoom(account: StaffAccount, secretPin: String = "1234") {
@@ -1906,7 +1910,7 @@ class AntarSalesViewModel(
             _lastCompletedInvoice.value = invoice
             clearCart()
 
-            // Push real-time stock deductions to cloud for all workers
+            // Push real-time stock deductions, invoice, and GPS location to cloud for manager & team
             launch(Dispatchers.IO) {
                 val deductions = items.map { cartItem ->
                     val unitsDeducted = cartItem.effectiveUnitsDeducted
@@ -1920,6 +1924,33 @@ class AntarSalesViewModel(
                     )
                 }
                 liveInventorySyncManager.pushBatchStockDeductions(deductions, activeStaffAccount)
+                liveInventorySyncManager.pushInvoiceToCloud(invoice, activeStaffAccount)
+
+                // Automatic checkout GPS location sync
+                try {
+                    val app = getApplication<Application>()
+                    val locationManager = app.getSystemService(android.content.Context.LOCATION_SERVICE) as? android.location.LocationManager
+                    val loc = locationManager?.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+                        ?: locationManager?.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+                    if (loc != null) {
+                        val currentStaff = activeStaffAccount
+                        val userId = currentStaff?.userId?.filter { it.isDigit() }?.toIntOrNull()
+                            ?: (_currentUser.value?.id ?: 1001)
+                        val workerName = currentStaff?.fullName?.ifBlank { currentStaff.email }
+                            ?: (_currentUser.value?.fullName ?: "كاشير")
+                        liveInventorySyncManager.pushWorkerLocation(
+                            userId = userId,
+                            workerName = workerName,
+                            lat = loc.latitude,
+                            lng = loc.longitude,
+                            statusNote = "إصدار فاتورة ${invoice.invoiceId} (${invoice.customerName})",
+                            activeAccount = activeStaffAccount
+                        )
+                    }
+                } catch (_: SecurityException) {
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
 
             if (newlyLowStockItems.isNotEmpty()) {
@@ -2778,30 +2809,27 @@ class AntarSalesViewModel(
 
     fun updateWorkerGpsLocation(userId: Int, workerName: String, lat: Double, lng: Double, statusNote: String = "في مهمة ميدانية") {
         viewModelScope.launch {
-            val loc = com.example.data.models.WorkerLocation(
+            val res = liveInventorySyncManager.pushWorkerLocation(
                 userId = userId,
                 workerName = workerName,
-                latitude = lat,
-                longitude = lng,
+                lat = lat,
+                lng = lng,
                 statusNote = statusNote,
-                timestamp = System.currentTimeMillis()
+                activeAccount = activeStaffAccount
             )
-            repository.updateWorkerLocation(loc)
-            try {
-                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                val data = hashMapOf(
-                    "userId" to userId,
-                    "workerName" to workerName,
-                    "latitude" to lat,
-                    "longitude" to lng,
-                    "statusNote" to statusNote,
-                    "timestamp" to System.currentTimeMillis()
-                )
-                db.collection("worker_locations").document(userId.toString()).set(data)
+            if (res.isSuccess) {
                 showStatusMessage("تم تحديث ومزامنة موقع العامل GPS مع السحابة بنجاح ✓")
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } else {
+                showStatusMessage("تم حفظ الموقع محلياً بانتظار اتصال السحابة")
             }
+        }
+    }
+
+    fun triggerComprehensiveSync(onComplete: (Boolean, String) -> Unit = { _, _ -> }) {
+        viewModelScope.launch {
+            val result = liveInventorySyncManager.triggerComprehensiveSync(activeStaffAccount)
+            showStatusMessage(result.message)
+            onComplete(result.isSuccess, result.message)
         }
     }
 
@@ -3048,6 +3076,9 @@ class AntarSalesViewModel(
             _lastCompletedPreSaleOrder.value = builtOrder
             _preSaleCartItems.value = emptyList()
             _preSaleNotes.value = ""
+            launch(Dispatchers.IO) {
+                liveInventorySyncManager.pushInvoiceToCloud(builtOrder, activeStaffAccount)
+            }
             showStatusMessage("تم حفظ طلب البيع المسبق #$invoiceCode بنجاح وحجز البضاعة في النظام 📋")
             onSuccess(builtOrder)
         }

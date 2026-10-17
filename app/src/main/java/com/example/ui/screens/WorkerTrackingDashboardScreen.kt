@@ -55,6 +55,10 @@ fun WorkerTrackingDashboardScreen(
     var showBroadcastDialog by remember { mutableStateOf(false) }
     var broadcastMessage by remember { mutableStateOf("") }
 
+    LaunchedEffect(Unit) {
+        vm?.triggerComprehensiveSync()
+    }
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -181,15 +185,19 @@ fun WorkerTrackingDashboardScreen(
                             }
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF10B981).copy(alpha = 0.15f)
+                                color = Color(0xFF10B981).copy(alpha = 0.15f),
+                                onClick = {
+                                    vm?.triggerComprehensiveSync()
+                                    Toast.makeText(context, "جاري تحديث مواقع العمال من السحابة...", Toast.LENGTH_SHORT).show()
+                                }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
-                                    Text("المزامنة السحابية متصلة", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF059669))
+                                    Icon(Icons.Default.Refresh, contentDescription = "تحديث", tint = Color(0xFF059669), modifier = Modifier.size(14.dp))
+                                    Text("تحديث GPS سحابياً", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF059669))
                                 }
                             }
                         }

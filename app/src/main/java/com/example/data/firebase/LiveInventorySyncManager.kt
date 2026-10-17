@@ -6,6 +6,9 @@ import com.example.data.AntarRepository
 import com.example.data.database.AntarDatabase
 import com.example.data.models.Product
 import com.example.data.models.RecordSyncState
+import com.example.data.models.ArchivedInvoice
+import com.example.data.models.Sale
+import com.example.data.models.WorkerLocation
 import com.example.utils.ProductCloudImageHelper
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
@@ -52,10 +55,24 @@ class LiveInventorySyncManager(
     }
 
     private var productsListenerRegistration: ListenerRegistration? = null
+    private var invoicesListenerRegistration: ListenerRegistration? = null
+    private var locationsListenerRegistration: ListenerRegistration? = null
     private var currentOwnerUid: String = ""
 
     private val _isLiveSyncActive = MutableStateFlow(false)
     val isLiveSyncActive: StateFlow<Boolean> = _isLiveSyncActive.asStateFlow()
+
+    private val _isComprehensiveSyncing = MutableStateFlow(false)
+    val isComprehensiveSyncing: StateFlow<Boolean> = _isComprehensiveSyncing.asStateFlow()
+
+    private val _syncedProductsCount = MutableStateFlow(0)
+    val syncedProductsCount: StateFlow<Int> = _syncedProductsCount.asStateFlow()
+
+    private val _syncedInvoicesCount = MutableStateFlow(0)
+    val syncedInvoicesCount: StateFlow<Int> = _syncedInvoicesCount.asStateFlow()
+
+    private val _syncedLocationsCount = MutableStateFlow(0)
+    val syncedLocationsCount: StateFlow<Int> = _syncedLocationsCount.asStateFlow()
 
     private val _lastSyncTimestamp = MutableStateFlow<Long>(0L)
     val lastSyncTimestamp: StateFlow<Long> = _lastSyncTimestamp.asStateFlow()
@@ -103,6 +120,15 @@ class LiveInventorySyncManager(
         activeAccount: StaffAccount,
         onStatusMessage: (String) -> Unit = {}
     ) {
+        if (!activeAccount.isSyncEnabled && !activeAccount.isOwner) {
+            Log.i(TAG, "الحساب في وضع Just Offline / Lite: تم إيقاف مزامنة المخزون السحابية.")
+            _isLiveSyncActive.value = false
+            val msg = "ميزة المزامنة غير مفعّلة لهذا الحساب (وضع Just Offline / Lite). تتطلب ترقية لـ Pro mode."
+            _syncMessage.value = msg
+            onStatusMessage(msg)
+            return
+        }
+
         val targetOwnerUid = resolveInventoryOwnerUid(activeAccount)
         if (targetOwnerUid.isBlank()) {
             Log.w(TAG, "تعذر تحديد معرّف مخزون المدير للمزامنة الحية.")
@@ -123,8 +149,13 @@ class LiveInventorySyncManager(
 
         productsListenerRegistration = productsCollection.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                Log.w(TAG, "خطأ في استقبال تحديثات المخزون اللحظية: ${error.message}")
-                _syncMessage.value = "خطأ في اتصال المزامنة: ${error.localizedMessage}"
+                if (error.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                    Log.w(TAG, "مزامنة السحابة مقيدة (صلاحية ناقصة أو حساب Offline/Lite): ${error.message}")
+                    _syncMessage.value = "ميزة المزامنة مقيدة (وضع Offline/Lite). تتطلب ترقية الحساب إلى Pro mode."
+                } else {
+                    Log.w(TAG, "خطأ في استقبال تحديثات المخزون اللحظية: ${error.message}")
+                    _syncMessage.value = "خطأ في اتصال المزامنة: ${error.localizedMessage}"
+                }
                 return@addSnapshotListener
             }
 
@@ -342,4 +373,432 @@ class LiveInventorySyncManager(
             Result.failure(e)
         }
     }
+
+    /**
+     * رفع ومزامنة الفاتورة المنفذة من العامل أو المدير إلى سحابة الإدارة فورياً.
+     */
+    suspend fun pushInvoiceToCloud(
+        invoice: ArchivedInvoice,
+        activeAccount: StaffAccount? = null
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        val targetOwnerUid = resolveInventoryOwnerUid(activeAccount)
+        if (targetOwnerUid.isBlank()) return@withContext Result.success(Unit)
+
+        try {
+            val invoicesCollection = db.collection("users").document(targetOwnerUid).collection("invoices")
+            val invoiceDocId = invoice.invoiceId.ifBlank { "inv_${System.currentTimeMillis()}" }
+
+            val itemsPayload = invoice.items.map { sale ->
+                mapOf(
+                    "saleId" to sale.saleId,
+                    "productId" to sale.productId,
+                    "productName" to sale.productName,
+                    "quantitySold" to sale.quantitySold,
+                    "totalPrice" to sale.totalPrice,
+                    "saleDate" to sale.saleDate,
+                    "customerId" to sale.customerId,
+                    "customerName" to sale.customerName,
+                    "isDebt" to sale.isDebt,
+                    "paymentMethod" to sale.paymentMethod,
+                    "invoiceGroupId" to invoiceDocId,
+                    "orderType" to sale.orderType,
+                    "status" to sale.status,
+                    "expectedDeliveryDate" to sale.expectedDeliveryDate,
+                    "notes" to sale.notes
+                )
+            }
+
+            val invoiceData = hashMapOf<String, Any?>(
+                "invoiceId" to invoiceDocId,
+                "dateMillis" to invoice.dateMillis,
+                "customerName" to invoice.customerName,
+                "customerId" to invoice.customerId,
+                "paymentMethod" to invoice.paymentMethod,
+                "isDebt" to invoice.isDebt,
+                "subtotal" to invoice.subtotal,
+                "totalQuantity" to invoice.totalQuantity,
+                "orderType" to invoice.orderType,
+                "status" to invoice.status,
+                "expectedDeliveryDate" to invoice.expectedDeliveryDate,
+                "notes" to invoice.notes,
+                "customerLocationUrl" to invoice.customerLocationUrl,
+                "workerName" to (activeAccount?.fullName?.ifBlank { activeAccount.email } ?: "كاشير"),
+                "workerUid" to (activeAccount?.userId ?: auth.currentUser?.uid ?: ""),
+                "items" to itemsPayload,
+                "serverUpdatedAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to System.currentTimeMillis()
+            )
+
+            invoicesCollection.document(invoiceDocId).set(invoiceData, SetOptions.merge()).await()
+            _lastSyncTimestamp.value = System.currentTimeMillis()
+            Log.i(TAG, "تمت مزامنة الفاتورة $invoiceDocId سحابياً في مستودع الإدارة ($targetOwnerUid).")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "خطأ أثناء مزامنة الفاتورة سحابياً: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * بدء مستمع لحظي لفواتير ومبيعات العمال الواردة لإدارة المتجر.
+     */
+    fun startLiveInvoicesSync(
+        activeAccount: StaffAccount,
+        onStatusMessage: (String) -> Unit = {}
+    ) {
+        val targetOwnerUid = resolveInventoryOwnerUid(activeAccount)
+        if (targetOwnerUid.isBlank()) return
+
+        invoicesListenerRegistration?.remove()
+
+        val invoicesCollection = db.collection("users").document(targetOwnerUid).collection("invoices")
+        invoicesListenerRegistration = invoicesCollection.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.w(TAG, "خطأ في استقبال تحديثات الفواتير اللحظية: ${error.message}")
+                return@addSnapshotListener
+            }
+            if (snapshot == null || snapshot.isEmpty) {
+                _syncedInvoicesCount.value = snapshot?.size() ?: 0
+                return@addSnapshotListener
+            }
+
+            scope.launch(Dispatchers.IO) {
+                try {
+                    var newInvoicesCount = 0
+                    for (doc in snapshot.documents) {
+                        val invoiceId = doc.getString("invoiceId") ?: doc.id
+                        val itemsRaw = doc.get("items") as? List<*> ?: emptyList<Any>()
+                        val salesToMerge = mutableListOf<Sale>()
+
+                        for (raw in itemsRaw) {
+                            if (raw is Map<*, *>) {
+                                val prodId = (raw["productId"] as? Number)?.toInt() ?: 0
+                                val prodName = raw["productName"] as? String ?: "صنف"
+                                val qty = (raw["quantitySold"] as? Number)?.toInt() ?: 1
+                                val total = (raw["totalPrice"] as? Number)?.toDouble() ?: 0.0
+                                val date = (raw["saleDate"] as? Number)?.toLong() ?: (doc.getLong("dateMillis") ?: System.currentTimeMillis())
+                                val custId = (raw["customerId"] as? Number)?.toInt() ?: doc.getLong("customerId")?.toInt()
+                                val custName = (raw["customerName"] as? String) ?: (doc.getString("customerName") ?: "")
+                                val isDebt = (raw["isDebt"] as? Boolean) ?: (doc.getBoolean("isDebt") ?: false)
+                                val method = (raw["paymentMethod"] as? String) ?: (doc.getString("paymentMethod") ?: "CASH")
+                                val orderType = (raw["orderType"] as? String) ?: (doc.getString("orderType") ?: "direct")
+                                val status = (raw["status"] as? String) ?: (doc.getString("status") ?: "completed")
+                                val expDelivery = (raw["expectedDeliveryDate"] as? Number)?.toLong() ?: 0L
+                                val notes = (raw["notes"] as? String) ?: ""
+
+                                salesToMerge.add(
+                                    Sale(
+                                        saleId = 0,
+                                        productId = prodId,
+                                        productName = prodName,
+                                        quantitySold = qty,
+                                        totalPrice = total,
+                                        saleDate = date,
+                                        customerId = custId,
+                                        customerName = custName,
+                                        isDebt = isDebt,
+                                        paymentMethod = method,
+                                        invoiceGroupId = invoiceId,
+                                        orderType = orderType,
+                                        status = status,
+                                        expectedDeliveryDate = expDelivery,
+                                        notes = notes,
+                                        syncStatus = RecordSyncState.SYNCED
+                                    )
+                                )
+                            }
+                        }
+
+                        if (salesToMerge.isNotEmpty()) {
+                            val allSales = repository.getAllSalesOnce()
+                            val alreadyExists = allSales.any { it.invoiceGroupId == invoiceId }
+                            if (!alreadyExists) {
+                                repository.saveSalesBatch(salesToMerge, enqueueForSync = false)
+                                newInvoicesCount++
+                            }
+                        }
+                    }
+                    _syncedInvoicesCount.value = snapshot.size()
+                    _lastSyncTimestamp.value = System.currentTimeMillis()
+                    if (newInvoicesCount > 0) {
+                        val msg = "تمت مزامنة $newInvoicesCount فاتورة جديدة من الفريق بنجاح ✓"
+                        withContext(Dispatchers.Main) { onStatusMessage(msg) }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "خطأ أثناء دمج فواتير السحابة: ${e.message}", e)
+                }
+            }
+        }
+    }
+
+    /**
+     * إيقاف مستمع الفواتير.
+     */
+    fun stopLiveInvoicesSync() {
+        invoicesListenerRegistration?.remove()
+        invoicesListenerRegistration = null
+    }
+
+    /**
+     * بدء مستمع لحظي لمواقع العمال الميدانية GPS وتحديث قاعدة بيانات Room.
+     */
+    fun startLiveWorkerLocationsSync(
+        activeAccount: StaffAccount,
+        onLocationReceived: (WorkerLocation) -> Unit = {}
+    ) {
+        val targetOwnerUid = resolveInventoryOwnerUid(activeAccount)
+        if (targetOwnerUid.isBlank()) return
+
+        locationsListenerRegistration?.remove()
+
+        val locationsCollection = db.collection("users").document(targetOwnerUid).collection("worker_locations")
+        locationsListenerRegistration = locationsCollection.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.w(TAG, "خطأ في استقبال مواقع العمال اللحظية: ${error.message}")
+                return@addSnapshotListener
+            }
+            if (snapshot == null || snapshot.isEmpty) {
+                _syncedLocationsCount.value = snapshot?.size() ?: 0
+                return@addSnapshotListener
+            }
+
+            scope.launch(Dispatchers.IO) {
+                try {
+                    for (doc in snapshot.documents) {
+                        val userId = (doc.get("userId") as? Number)?.toInt()
+                            ?: doc.id.filter { it.isDigit() }.toIntOrNull()
+                            ?: continue
+                        val workerName = doc.getString("workerName") ?: "عامل ميداني"
+                        val lat = doc.getDouble("latitude") ?: continue
+                        val lng = doc.getDouble("longitude") ?: continue
+                        val statusNote = doc.getString("statusNote") ?: "ميداني"
+                        val timestamp = (doc.get("timestamp") as? Number)?.toLong() ?: System.currentTimeMillis()
+
+                        val workerLoc = WorkerLocation(
+                            userId = userId,
+                            workerName = workerName,
+                            latitude = lat,
+                            longitude = lng,
+                            statusNote = statusNote,
+                            timestamp = timestamp,
+                            isTrackingActive = true
+                        )
+                        repository.updateWorkerLocation(workerLoc)
+                        withContext(Dispatchers.Main) {
+                            onLocationReceived(workerLoc)
+                        }
+                    }
+                    _syncedLocationsCount.value = snapshot.size()
+                    _lastSyncTimestamp.value = System.currentTimeMillis()
+                } catch (e: Exception) {
+                    Log.e(TAG, "خطأ أثناء تحديث مواقع العمال من السحابة: ${e.message}", e)
+                }
+            }
+        }
+    }
+
+    /**
+     * إيقاف مستمع مواقع العمال.
+     */
+    fun stopLiveWorkerLocationsSync() {
+        locationsListenerRegistration?.remove()
+        locationsListenerRegistration = null
+    }
+
+    /**
+     * رفع موقع العامل اللحظي GPS إلى سحابة المدير والمستودع العام.
+     */
+    suspend fun pushWorkerLocation(
+        userId: Int,
+        workerName: String,
+        lat: Double,
+        lng: Double,
+        statusNote: String,
+        activeAccount: StaffAccount? = null
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        val targetOwnerUid = resolveInventoryOwnerUid(activeAccount)
+        val loc = WorkerLocation(
+            userId = userId,
+            workerName = workerName,
+            latitude = lat,
+            longitude = lng,
+            statusNote = statusNote,
+            timestamp = System.currentTimeMillis(),
+            isTrackingActive = true
+        )
+        repository.updateWorkerLocation(loc)
+
+        val payload = hashMapOf<String, Any?>(
+            "userId" to userId,
+            "workerName" to workerName,
+            "latitude" to lat,
+            "longitude" to lng,
+            "statusNote" to statusNote,
+            "timestamp" to System.currentTimeMillis(),
+            "serverUpdatedAt" to FieldValue.serverTimestamp()
+        )
+
+        try {
+            db.collection("worker_locations").document(userId.toString()).set(payload, SetOptions.merge()).await()
+            if (targetOwnerUid.isNotBlank()) {
+                db.collection("users").document(targetOwnerUid)
+                    .collection("worker_locations")
+                    .document(userId.toString())
+                    .set(payload, SetOptions.merge())
+                    .await()
+            }
+            _lastSyncTimestamp.value = System.currentTimeMillis()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "خطأ أثناء رفع موقع العامل سحابياً: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * فحص وتدقيق المزامنة الشاملة فوراً لكل أركان التطبيق (منتجات، فواتير، مواقع، مخزون معلق).
+     */
+    suspend fun triggerComprehensiveSync(activeAccount: StaffAccount?): ComprehensiveSyncResult = withContext(Dispatchers.IO) {
+        _isComprehensiveSyncing.value = true
+        val targetOwnerUid = resolveInventoryOwnerUid(activeAccount)
+        try {
+            // 1. مزامنة ودفع أي مبيعات محلية معلقة في Room
+            val pendingSales = repository.getPendingSalesOnce()
+            if (pendingSales.isNotEmpty() && targetOwnerUid.isNotBlank()) {
+                val groupedByInvoice = pendingSales.groupBy { it.invoiceGroupId.ifBlank { "inv_${it.saleDate}" } }
+                val invoicesCollection = db.collection("users").document(targetOwnerUid).collection("invoices")
+                val batch = db.batch()
+
+                for ((invId, sales) in groupedByInvoice) {
+                    val first = sales.first()
+                    val invoicePayload = hashMapOf<String, Any?>(
+                        "invoiceId" to invId,
+                        "dateMillis" to first.saleDate,
+                        "customerName" to first.customerName,
+                        "customerId" to first.customerId,
+                        "paymentMethod" to first.paymentMethod,
+                        "isDebt" to sales.any { it.isDebt },
+                        "subtotal" to sales.sumOf { it.totalPrice },
+                        "totalQuantity" to sales.sumOf { it.quantitySold },
+                        "orderType" to first.orderType,
+                        "status" to first.status,
+                        "serverUpdatedAt" to FieldValue.serverTimestamp(),
+                        "items" to sales.map { s ->
+                            mapOf(
+                                "saleId" to s.saleId,
+                                "productId" to s.productId,
+                                "productName" to s.productName,
+                                "quantitySold" to s.quantitySold,
+                                "totalPrice" to s.totalPrice,
+                                "saleDate" to s.saleDate,
+                                "isDebt" to s.isDebt
+                            )
+                        }
+                    )
+                    batch.set(invoicesCollection.document(invId), invoicePayload, SetOptions.merge())
+                }
+                batch.commit().await()
+                repository.markSalesAsSynced(pendingSales.map { it.saleId })
+            }
+
+            // 2. سحب كتالوج السلع السحابي للمدير
+            var productsCount = 0
+            if (targetOwnerUid.isNotBlank()) {
+                val prodSnap = db.collection("users").document(targetOwnerUid).collection("products").get().await()
+                productsCount = prodSnap.size()
+                val remoteList = mutableListOf<Product>()
+                for (doc in prodSnap.documents) {
+                    val p = doc.toObject(Product::class.java)
+                    if (p != null) {
+                        if (p.firestoreId.isBlank()) p.firestoreId = doc.id
+                        val resolvedImg = ProductCloudImageHelper.ensureLocalProductImage(context, p)
+                        if (resolvedImg.isNotBlank()) p.imagePath = resolvedImg
+                        remoteList.add(p)
+                    }
+                }
+                if (remoteList.isNotEmpty()) {
+                    repository.mergeRemoteProductsWithTimestampResolution(remoteList)
+                }
+                _syncedProductsCount.value = productsCount
+            }
+
+            // 3. سحب الفواتير الصادرة من الفريق
+            var invoicesCount = 0
+            if (targetOwnerUid.isNotBlank()) {
+                val invSnap = db.collection("users").document(targetOwnerUid).collection("invoices").get().await()
+                invoicesCount = invSnap.size()
+                _syncedInvoicesCount.value = invoicesCount
+            }
+
+            // 4. سحب مواقع العمال GPS
+            var locationsCount = 0
+            if (targetOwnerUid.isNotBlank()) {
+                val locSnap = db.collection("users").document(targetOwnerUid).collection("worker_locations").get().await()
+                locationsCount = locSnap.size()
+                for (doc in locSnap.documents) {
+                    val uid = (doc.get("userId") as? Number)?.toInt() ?: doc.id.filter { it.isDigit() }.toIntOrNull() ?: continue
+                    val name = doc.getString("workerName") ?: "عامل"
+                    val lat = doc.getDouble("latitude") ?: continue
+                    val lng = doc.getDouble("longitude") ?: continue
+                    val note = doc.getString("statusNote") ?: "ميداني"
+                    val ts = (doc.get("timestamp") as? Number)?.toLong() ?: System.currentTimeMillis()
+                    repository.updateWorkerLocation(
+                        WorkerLocation(
+                            userId = uid,
+                            workerName = name,
+                            latitude = lat,
+                            longitude = lng,
+                            statusNote = note,
+                            timestamp = ts,
+                            isTrackingActive = true
+                        )
+                    )
+                }
+                _syncedLocationsCount.value = locationsCount
+            }
+
+            val now = System.currentTimeMillis()
+            _lastSyncTimestamp.value = now
+            _isComprehensiveSyncing.value = false
+
+            val summaryMsg = "اكتملت المزامنة الشاملة بنجاح ✓ ($productsCount صنفاً، $invoicesCount فاتورة، $locationsCount موقعاً)"
+            _syncMessage.value = summaryMsg
+            ComprehensiveSyncResult(
+                isSuccess = true,
+                message = summaryMsg,
+                productsCount = productsCount,
+                invoicesCount = invoicesCount,
+                locationsCount = locationsCount
+            )
+        } catch (e: Exception) {
+            _isComprehensiveSyncing.value = false
+            val errorMsg = "حدث خطأ أثناء فحص المزامنة: ${e.localizedMessage ?: e.message}"
+            _syncMessage.value = errorMsg
+            Log.e(TAG, errorMsg, e)
+            ComprehensiveSyncResult(
+                isSuccess = false,
+                message = errorMsg,
+                productsCount = 0,
+                invoicesCount = 0,
+                locationsCount = 0
+            )
+        }
+    }
+
+    /**
+     * إيقاف جميع مستمعي المزامنة الحية دفعة واحدة.
+     */
+    fun stopAllLiveSync() {
+        stopLiveInventorySync()
+        stopLiveInvoicesSync()
+        stopLiveWorkerLocationsSync()
+    }
+
+    data class ComprehensiveSyncResult(
+        val isSuccess: Boolean,
+        val message: String,
+        val productsCount: Int,
+        val invoicesCount: Int,
+        val locationsCount: Int
+    )
 }

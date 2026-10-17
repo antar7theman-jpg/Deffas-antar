@@ -101,6 +101,38 @@
       "schema": { "$ref": "SaleTransaction" },
       "description": "Sales records"
     },
+    "/users/{userId}/invoices/{invoiceId}": {
+      "schema": { "$ref": "SaleTransaction" },
+      "description": "Store customer invoices issued by workers or manager"
+    },
+    "/users/{userId}/worker_locations/{workerId}": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "integer" },
+          "workerName": { "type": "string" },
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "statusNote": { "type": "string" },
+          "timestamp": { "type": "number" }
+        }
+      },
+      "description": "Live GPS coordinates of workers reporting to manager"
+    },
+    "/worker_locations/{workerId}": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "integer" },
+          "workerName": { "type": "string" },
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "statusNote": { "type": "string" },
+          "timestamp": { "type": "number" }
+        }
+      },
+      "description": "Root team worker GPS locations"
+    },
     "/stores/{storeId}/products/{productId}": {
       "schema": { "$ref": "FirestoreProduct" },
       "description": "Shared multi-device store catalog"

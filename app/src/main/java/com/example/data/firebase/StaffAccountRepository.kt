@@ -124,9 +124,12 @@ data class StaffAccount(
     val isTrial: Boolean = false,
     val trialEndsAtMillis: Long = 0L,
     val isApprovedByOwner: Boolean = true,
+    val syncMode: String = "pro", // "pro", "offline", "lite"
     val createdAt: Timestamp? = null,
     val updatedAt: Timestamp? = null
 ) {
+    val isSyncEnabled: Boolean
+        get() = syncMode == "pro"
     val isApproved: Boolean
         get() = approvalStatus == StaffApprovalStatus.APPROVED
 
@@ -272,6 +275,7 @@ data class StaffAccount(
         put("isTrial", isTrial)
         put("trialEndsAtMillis", trialEndsAtMillis)
         put("isApprovedByOwner", isApprovedByOwner)
+        put("syncMode", syncMode)
     }
 
     fun toFirestorePayload(): Map<String, Any> {
@@ -299,6 +303,7 @@ data class StaffAccount(
             "isTrial" to isTrial,
             "trialEndsAtMillis" to trialEndsAtMillis,
             "isApprovedByOwner" to isApprovedByOwner,
+            "syncMode" to syncMode,
             "createdAt" to (createdAt ?: Timestamp.now()),
             "updatedAt" to FieldValue.serverTimestamp()
         )
@@ -376,6 +381,7 @@ data class StaffAccount(
                 isTrial = obj.optBoolean("isTrial", false),
                 trialEndsAtMillis = obj.optLong("trialEndsAtMillis", 0L),
                 isApprovedByOwner = obj.optBoolean("isApprovedByOwner", true),
+                syncMode = obj.optString("syncMode", "pro"),
                 createdAt = Timestamp.now(),
                 updatedAt = Timestamp.now()
             )
@@ -416,6 +422,7 @@ data class StaffAccount(
                 isTrial = doc.getBoolean("isTrial") ?: false,
                 trialEndsAtMillis = doc.getLong("trialEndsAtMillis") ?: 0L,
                 isApprovedByOwner = doc.getBoolean("isApprovedByOwner") ?: true,
+                syncMode = doc.getString("syncMode") ?: "pro",
                 createdAt = doc.getTimestamp("createdAt", estimate),
                 updatedAt = doc.getTimestamp("updatedAt", estimate)
             )
@@ -580,6 +587,7 @@ class StaffAccountRepository(
                 .putString("activeDeviceId", account.activeDeviceId)
                 .putString("activeDeviceName", account.activeDeviceName)
                 .putString("activeSessionToken", account.activeSessionToken)
+                .putString("syncMode", account.syncMode)
                 .apply()
         }
 
@@ -621,6 +629,7 @@ class StaffAccountRepository(
                 activeDeviceId = prefs.getString("activeDeviceId", "") ?: "",
                 activeDeviceName = prefs.getString("activeDeviceName", "") ?: "",
                 activeSessionToken = prefs.getString("activeSessionToken", "") ?: "",
+                syncMode = prefs.getString("syncMode", "pro") ?: "pro",
                 createdAt = Timestamp.now(),
                 updatedAt = Timestamp.now()
             )
@@ -1833,7 +1842,8 @@ class StaffAccountRepository(
         workerEmail: String,
         workerPhone: String,
         workerSecretPin: String,
-        permissions: WorkerPermissions
+        permissions: WorkerPermissions,
+        syncMode: String = "pro"
     ): Result<StaffAccount> {
         if (!managerAccount.isManagerOrAdmin) {
             return Result.failure(
@@ -1844,6 +1854,7 @@ class StaffAccountRepository(
         val cleanEmail = workerEmail.trim().lowercase().take(150)
         val cleanPhone = workerPhone.trim().take(30)
         val cleanPin = workerSecretPin.trim().ifBlank { "1234" }.take(64)
+        val safeSyncMode = if (syncMode in listOf("pro", "offline", "lite")) syncMode else "pro"
 
         if (cleanName.length < 2) {
             return Result.failure(IllegalArgumentException("يرجى إدخال الاسم الكامل للعامل التابع"))
@@ -1890,6 +1901,7 @@ class StaffAccountRepository(
             canViewCostPrices = permissions.canViewCostPrices,
             canExportData = permissions.canExportData,
             canManagePurchaseInvoices = permissions.canManagePurchaseInvoices,
+            syncMode = safeSyncMode,
             createdAt = Timestamp.now(),
             updatedAt = Timestamp.now()
         )
@@ -1921,6 +1933,7 @@ class StaffAccountRepository(
             "canViewCostPrices" to permissions.canViewCostPrices,
             "canExportData" to permissions.canExportData,
             "canManagePurchaseInvoices" to permissions.canManagePurchaseInvoices,
+            "syncMode" to safeSyncMode,
             "createdAt" to FieldValue.serverTimestamp(),
             "updatedAt" to FieldValue.serverTimestamp()
         )
@@ -1968,7 +1981,8 @@ class StaffAccountRepository(
         managerName: String,
         isCallerOwner: Boolean = false,
         ownerSecretCode: String = "",
-        callerAccount: StaffAccount? = null
+        callerAccount: StaffAccount? = null,
+        syncMode: String = "pro"
     ): Result<Unit> {
         val managerUid = auth.currentUser?.uid ?: callerAccount?.userId ?: "owner_deffas_antar"
         val involvesManagerRole = newRole in listOf("manager", "admin", "owner") ||
@@ -2000,6 +2014,7 @@ class StaffAccountRepository(
         } else {
             "worker"
         }
+        val safeSyncMode = if (syncMode in listOf("pro", "offline", "lite")) syncMode else "pro"
         val isManagerRole = safeRole == "manager" || safeRole == "admin" || safeRole == "owner"
 
         if (auth.currentUser == null) {
@@ -2023,6 +2038,7 @@ class StaffAccountRepository(
             "canViewCostPrices" to permissions.canViewCostPrices,
             "canExportData" to permissions.canExportData,
             "canManagePurchaseInvoices" to permissions.canManagePurchaseInvoices,
+            "syncMode" to safeSyncMode,
             "updatedAt" to FieldValue.serverTimestamp()
         )
         if (!isCallerOwner && safeRole == "worker") {

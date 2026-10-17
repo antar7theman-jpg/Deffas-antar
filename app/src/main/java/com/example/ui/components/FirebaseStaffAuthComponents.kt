@@ -4111,7 +4111,7 @@ fun StaffAccountsManagementModal(
             staff = target,
             isCallerOwner = isCallerOwner,
             onDismiss = { editingPermissionsTarget = null },
-            onSave = { updatedRole, updatedStatus, updatedPerms, ownerSecret ->
+            onSave = { updatedRole, updatedStatus, updatedPerms, ownerSecret, updatedSyncMode ->
                 scope.launch {
                     val res = repository.approveOrUpdateStaffAccount(
                         targetAccount = target,
@@ -4121,7 +4121,8 @@ fun StaffAccountsManagementModal(
                         managerName = myAccount.fullName,
                         isCallerOwner = isCallerOwner,
                         ownerSecretCode = ownerSecret,
-                        callerAccount = myAccount
+                        callerAccount = myAccount,
+                        syncMode = updatedSyncMode
                     )
                     if (res.isSuccess) {
                         val updatedLocal = target.copy(
@@ -4136,7 +4137,8 @@ fun StaffAccountsManagementModal(
                             canApplyDiscounts = updatedPerms.canApplyDiscounts,
                             canViewCostPrices = updatedPerms.canViewCostPrices,
                             canExportData = updatedPerms.canExportData,
-                            canManagePurchaseInvoices = updatedPerms.canManagePurchaseInvoices
+                            canManagePurchaseInvoices = updatedPerms.canManagePurchaseInvoices,
+                            syncMode = updatedSyncMode
                         )
                         StaffAccountRepository.saveAccountToLocalRegistry(context, updatedLocal)
                         onLocalRegistryUpdated()
@@ -5135,7 +5137,7 @@ private fun StaffPermissionsEditorDialog(
     staff: StaffAccount,
     isCallerOwner: Boolean,
     onDismiss: () -> Unit,
-    onSave: (role: String, approvalStatus: String, permissions: WorkerPermissions, ownerSecretCode: String) -> Unit
+    onSave: (role: String, approvalStatus: String, permissions: WorkerPermissions, ownerSecretCode: String, syncMode: String) -> Unit
 ) {
     val semantic = LocalAFStoreSemanticColors.current
     var selectedRole by rememberSaveable(staff.userId) { mutableStateOf(if (isCallerOwner) staff.role else "worker") }
@@ -5153,6 +5155,7 @@ private fun StaffPermissionsEditorDialog(
     var canExportData by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canExportData) }
     var canManagePurchaseInvoices by rememberSaveable(staff.userId) { mutableStateOf(initialPerms.canManagePurchaseInvoices) }
 
+    var selectedSyncMode by rememberSaveable(staff.userId) { mutableStateOf(staff.syncMode.ifBlank { "pro" }) }
     var ownerSecretInput by rememberSaveable { mutableStateOf("") }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
@@ -5217,6 +5220,21 @@ private fun StaffPermissionsEditorDialog(
                             label = { Text("مدير فرع معتمد", fontSize = 12.sp) }
                         )
                     }
+                }
+
+                HorizontalDivider()
+                Text("خاصية المزامنة السحابية (Sync Mode):", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = selectedSyncMode == "pro",
+                        onClick = { selectedSyncMode = "pro" },
+                        label = { Text("Pro Mode (مزامنة كاملة) ⚡", fontSize = 11.5.sp) }
+                    )
+                    FilterChip(
+                        selected = selectedSyncMode == "offline" || selectedSyncMode == "lite",
+                        onClick = { selectedSyncMode = "lite" },
+                        label = { Text("Just Offline / Lite (بدون مزامنة) 🔒", fontSize = 11.5.sp) }
+                    )
                 }
 
                 if (requiresOwnerSecret && isCallerOwner) {
@@ -5285,7 +5303,8 @@ private fun StaffPermissionsEditorDialog(
                                         canExportData = canExportData,
                                         canManagePurchaseInvoices = canManagePurchaseInvoices
                                     ),
-                                    ownerSecretInput.trim()
+                                    ownerSecretInput.trim(),
+                                    selectedSyncMode
                                 )
                             }
                         }

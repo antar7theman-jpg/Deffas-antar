@@ -8,15 +8,15 @@ import android.content.Context
 import android.content.Intent
 import android.location.LocationManager
 import android.os.IBinder
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.data.database.AntarDatabase
+import com.example.data.firebase.StaffAccountRepository
+import com.example.data.models.WorkerLocation
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.*
 import java.util.UUID
 
 class WorkerLocationService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -25,8 +25,8 @@ class WorkerLocationService : Service() {
         val channel = NotificationChannel("worker_tracking", "Worker Tracking", NotificationManager.IMPORTANCE_LOW)
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         val notification = Notification.Builder(this, "worker_tracking")
-            .setContentTitle("Worker Tracking Active")
-            .setContentText("Syncing location every 5 minutes")
+            .setContentTitle("تتبع مواقع العمال الميدانية GPS")
+            .setContentText("المزامنة التلقائية للموقع نشطة مع الإدارة السحابية")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .build()
         startForeground(1, notification)
@@ -40,32 +40,73 @@ class WorkerLocationService : Service() {
     private fun startTracking() {
         serviceScope.launch {
             while (isActive) {
-                val user = auth.currentUser
-                if (user != null) {
-                    try {
-                        val locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-                        val location = try {
-                            locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                                ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-                        } catch (_: SecurityException) {
-                            null
+                try {
+                    val db = StaffAccountRepository.getFirestoreDb(applicationContext)
+                    val auth = StaffAccountRepository.getFirebaseAuth(applicationContext)
+                    val activeSession = StaffAccountRepository.loadPersistentStaffSession(applicationContext)
+                    val user = auth.currentUser
+
+                    val locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+                    val location = try {
+                        locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                            ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                    } catch (_: SecurityException) {
+                        null
+                    }
+
+                    if (location != null) {
+                        val userId = activeSession?.userId?.filter { it.isDigit() }?.toIntOrNull() ?: 1001
+                        val workerName = activeSession?.fullName?.ifBlank { activeSession.email } ?: "عامل ميداني"
+                        val targetOwnerUid = activeSession?.parentManagerUid?.ifBlank { activeSession.userId } ?: (user?.uid ?: "")
+
+                        val workerLoc = WorkerLocation(
+                            userId = userId,
+                            workerName = workerName,
+                            latitude = location.latitude,
+                            longitude = location.longitude,
+                            statusNote = "نشط وميداني (مزامنة دورية)",
+                            timestamp = System.currentTimeMillis()
+                        )
+
+                        // 1. Update local Room database
+                        try {
+                            AntarDatabase.getDatabase(applicationContext).storeDao().insertOrUpdateWorkerLocation(workerLoc)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                         }
-                        if (location != null) {
-                            val data = hashMapOf(
-                                "lat" to location.latitude,
-                                "lng" to location.longitude,
-                                "timestamp" to System.currentTimeMillis()
-                            )
+
+                        val data = hashMapOf(
+                            "userId" to userId,
+                            "workerName" to workerName,
+                            "latitude" to location.latitude,
+                            "longitude" to location.longitude,
+                            "statusNote" to "نشط وميداني (مزامنة دورية)",
+                            "timestamp" to System.currentTimeMillis()
+                        )
+
+                        // 2. Write to root worker_locations
+                        db.collection("worker_locations").document(userId.toString()).set(data, SetOptions.merge())
+
+                        // 3. Write to manager-scoped worker_locations
+                        if (targetOwnerUid.isNotBlank()) {
+                            db.collection("users").document(targetOwnerUid)
+                                .collection("worker_locations")
+                                .document(userId.toString())
+                                .set(data, SetOptions.merge())
+                        }
+
+                        // 4. Also record history if user is authenticated
+                        if (user != null) {
                             db.collection("users").document(user.uid)
                                 .collection("location_history")
                                 .document(UUID.randomUUID().toString())
                                 .set(data)
                         }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
                     }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-                delay(5 * 60 * 1000L) // 5 minutes interval
+                delay(3 * 60 * 1000L) // 3 minutes interval
             }
         }
     }
