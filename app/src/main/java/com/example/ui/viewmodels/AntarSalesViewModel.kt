@@ -449,7 +449,7 @@ class AntarSalesViewModel(
     init {
         viewModelScope.launch {
             val db = AntarDatabase.getDatabase(application)
-            AntarDatabase.seedInitialDataIfEmpty(db.storeDao())
+            AntarDatabase.seedInitialDataIfEmpty(db.storeDao(), forceAddMissing = true)
             val allUsers = repository.getAllUsersOnce()
             if (_currentUser.value == null && allUsers.isNotEmpty()) {
                 _currentUser.value = allUsers.first()
@@ -508,6 +508,14 @@ class AntarSalesViewModel(
                 delay(30_000L)
                 checkAndRunScheduledSalesReportIfDue()
             }
+        }
+    }
+
+    fun seedSampleCatalogAndCustomers(force: Boolean = true) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val db = AntarDatabase.getDatabase(getApplication<Application>())
+            AntarDatabase.seedInitialDataIfEmpty(db.storeDao(), forceAddMissing = force)
+            showStatusMessage("تم تجهيز السلع والعملاء الافتراضيين بنجاح للتجربة ✓")
         }
     }
 

@@ -1,129 +1,18 @@
-# خطة إضافة ميزة تحديد سمك وعرض خط الطباعة الحرارية (Thermal Font Thickness)
+# Implementation Plan - QR Code Scanner for Invoices Archive
 
-خطة هندسية وتصميمية متكاملة لإضافة إمكانية التحكم في سمك وعرض خطوط الطباعة الحرارية عبر ثلاثة مستويات متدرجة، وتطبيقها في كل من نافذة معاينة الفواتير وإعدادات الطابعة، مع الحفظ الدائم والتأثير المباشر على المعاينة المرئية وأوامر الطباعة ESC/POS.
+## Objective
+Add a QR code scanner feature to the Invoices Archive screen (`InvoicesArchiveScreen`), allowing users to scan an invoice QR code (or enter/scan invoice number/ID) and instantly display the corresponding detailed invoice preview sheet.
 
----
+## Proposed Changes
 
-### مراجعة المستخدم والقرارات المؤكدة
+### 1. `CustomersAndPurchasesScreens.kt` (`InvoicesArchiveScreen`)
+- Add a QR Scanner action icon button in the Top App Bar of `InvoicesArchiveScreen`.
+- Implement a QR Scanner dialog / camera scanner launcher / manual QR code entry dialog.
+- When a QR code is successfully scanned or entered, find the matching `ArchivedInvoice` from `viewModel.archivedInvoices.value`.
+- Automatically open the detailed invoice preview sheet for that invoice.
+- If not found, show a clear notification toast or error dialog ("الفاتورة غير موجودة أو رمز الاستجابة غير صالح").
 
-> [!IMPORTANT]
-> تم تأكيد خيارات المستخدم المحددة في مرحلة الاستيضاح:
-> 1. **موقع التحكم:** متاح في **كلا المكانين**: داخل نافذة معاينة الفاتورة (`InvoiceTemplatePreviewDialog`) وفي بطاقة إعدادات الطابعة الحرارية (`ThermalPrinterSettingsCard`).
-> 2. **مستويات السمك:** ثلاثة مستويات واضحة: **عادي (Normal)**، **متوسط (Medium)**، و **عريض داكن (Extra Bold)**.
-> 3. **نطاق التطبيق:** يطبق على **كامل الوصل** مع تركيز ومضاعفة البروز على الإجماليات والترويسة وعناوين الأقسام.
-
----
-
-## 1. نظرة عامة والهدف العام
-
-- **المشكلة الحالية:** تختلف طابعات البلوتوث الحرارية في دقة رؤوس الطباعة الحرارية وحساسية رولات الورق، مما يجعل بعض النصوص باهتة على طابعات معينة أو تحتاج إلى وضوح وبروز إضافي في بيئات المتاجر السريعة.
-- **الحل المقدم:** توفير أداة مرنة وسهلة الاستخدام تتيح للمستخدم تحديد كثافة وسمك خطوط الطباعة الحرارية بضغطة زر واحدة، بحيث تنعكس فوراً على معاينة الفاتورة على الشاشة وتُحفظ كإعداد افتراضي في الطابعة.
-- **القيمة المضافة:** ضمان سهولة قراءة الفاتورة من قِبل الزبائن والعمال، والتوافق الممتاز مع جميع أنواع الطابعات الحرارية ورولات الورق المتنوعة.
-
----
-
-## 2. تجربة المستخدم والتصميم البصري (UX & UI)
-
-### 1. في نافذة معاينة الفاتورة (`InvoiceTemplatePreviewDialog`):
-- يضاف شريط أدوات أنيق أسفل شريط اختيار القوالب بعنوان: **"سمك خط الطباعة الحرارية:"**
-- ثلاثة خيارات على شكل شرائح تفاعلية (Segmented Chips):
-  - **عادي (Normal):** خط قياسي متناسق وموفر للحرارة ورأس الطباعة.
-  - **متوسط (Medium):** خط نصف عريض (SemiBold) يمنح وضوحاً ممتازاً.
-  - **عريض داكن (Extra Bold):** خط أسود ثقيل (Black/ExtraBold) مع خطوط فاصلة بارزة للوضوح الأقصى.
-- تنعكس التغييرات فوراً على كرت الوصل الأبيض المعروض (`BonDeLivraisonPaperCard`).
-
-### 2. في إعدادات الطابعة الحرارية (`ThermalPrinterSettingsCard`):
-- يضاف قسم مخصص بعنوان **"كثافة وسمك خط الفاتورة"** يتيح اختيار القيمة الافتراضية الثابتة لكافة المبيعات القادمة.
-- حفظ الإعداد تلقائياً في `SharedPreferences` بحيث يتم تطبيقه حتى دون فتح نافذة المعاينة.
-
-```
-┌────────────────────────────────────────────────────────┐
-│  تنسيق وشكل الفاتورة: [ ✨ قالب K ] [ 🧾 وصل التسليم ] │
-├────────────────────────────────────────────────────────┤
-│  سمك خط الطباعة:                                       │
-│  [ ✏️ عادي ]    [ ✒️ متوسط ✓ ]    [ 🖋️ عريض داكن ]      │
-├────────────────────────────────────────────────────────┤
-│                                                        │
-│               🏪 متجر AF STORE                        │
-│               هاتف: 0550123456                         │
-│   ──────────────────────────────────────────           │
-│   السلعة                        السعر                  │
-│   1. حليب البودرة 500غ         350.00 د.ج              │
-│   2. زيت المائدة 1 لتر         170.00 د.ج              │
-│   ──────────────────────────────────────────           │
-│   المجموع النهائي:          520.00 د.ج  (بارز وثقيل)   │
-│                                                        │
-└────────────────────────────────────────────────────────┘
-```
-
----
-
-## 3. القرارات التقنية ومعمارية البيانات
-
-### 1. نموذج البيانات `ThermalFontThickness`:
-إضافة تعداد (Enum) داخل `DeviceAndReportHelpers.kt`:
-```kotlin
-enum class ThermalFontThickness(
-    val id: String,
-    val labelAr: String,
-    val bodyWeight: FontWeight,
-    val headerWeight: FontWeight,
-    val totalWeight: FontWeight,
-    val strokeMultiplier: Float
-) {
-    NORMAL("NORMAL", "عادي", FontWeight.Normal, FontWeight.Bold, FontWeight.Bold, 1.0f),
-    MEDIUM("MEDIUM", "متوسط", FontWeight.SemiBold, FontWeight.ExtraBold, FontWeight.ExtraBold, 1.25f),
-    EXTRA_BOLD("EXTRA_BOLD", "عريض داكن", FontWeight.Bold, FontWeight.Black, FontWeight.Black, 1.6f)
-}
-```
-
-### 2. توسيع `ThermalPrinterConfig` و `ThermalReceiptPrintPayload`:
-- إضافة حقل `fontThickness: ThermalFontThickness = ThermalFontThickness.NORMAL` إلى كلاهما.
-- دعم القراءة والحفظ الدائم عبر `loadFromPrefs` و `saveToPrefs` في `SharedPreferences`.
-
-### 3. تدفق البيانات وسريان المعمارية:
-
-```
-┌─────────────────────────────────┐
-│     SharedPreferences           │
-│ (thermal_printer_font_thickness)│
-└────────────────┬────────────────┘
-                 │ load / save
-                 ▼
-┌─────────────────────────────────┐
-│      AntarSalesViewModel        │
-│    _thermalPrinterConfig        │
-└────────┬────────────────────────┘
-         │ StateFlow
-         ├─────────────────────────────────────────┐
-         ▼                                         ▼
-┌──────────────────────────────────┐     ┌──────────────────────────────────┐
-│   InvoiceTemplatePreviewDialog   │     │    ThermalPrinterSettingsCard    │
-│  (Chips: Normal/Medium/Bold)     │     │  (Default Printer Thickness)     │
-└────────────────┬─────────────────┘     └──────────────────────────────────┘
-                 │
-                 ▼
-┌──────────────────────────────────┐
-│     BonDeLivraisonPaperCard      │
-│  (Dynamic font weights & stroke) │
-└──────────────────────────────────┘
-```
-
----
-
-## 4. خطة التنفيذ المبرمجة
-
-1. **الطبقة الأساسية ونموذج البيانات (`DeviceAndReportHelpers.kt`):**
-   - تعريف `ThermalFontThickness` وإدراجه في `ThermalPrinterConfig` و `ThermalReceiptPrintPayload`.
-   - إضافة مفتاح التخزين `PREF_KEY_FONT_THICKNESS` لحفظ واسترجاع الخيار عبر `SharedPreferences`.
-
-2. **طبقة العرض والواجهة - كرت الفاتورة (`InvoiceTemplatePreviewDialog.kt`):**
-   - تمرير `fontThickness` إلى دالة رسم الوصل `BonDeLivraisonPaperCard`.
-   - تعديل أوزان الخطوط `FontWeight` للنصوص وعناوين الأعمدة والمجموع الكلي والخطوط الفاصلة بناءً على السمك المختار.
-   - إضافة شريط الاختيار التفاعلي (Normal, Medium, Extra Bold) في واجهة المعاينة.
-
-3. **طبقة الإعدادات (`UiScreenStubsAndComponents.kt`):**
-   - إضافة خيار تحديد سمك الخط الافتراضي داخل `ThermalPrinterSettingsCard` ليتمكن المستخدم من ضبطه على مستوى الطابعة العامة.
-
-4. **التحقق والتجميع:**
-   - فحص وتجميع المشروع بالكامل باستخدام `compile_applet` والتأكد من خلوه من أي أخطاء.
+## Verification Plan
+- Compile applet with `compile_applet`.
+- Verify the QR code button appears in the Invoices Archive top app bar.
+- Test scanning or entering an invoice QR code to verify it opens the invoice detail preview sheet.

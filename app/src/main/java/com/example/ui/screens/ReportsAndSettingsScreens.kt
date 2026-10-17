@@ -899,6 +899,8 @@ fun SettingsScreen(
                 config = thermalPrinterConfig,
                 connectionState = thermalConnectionState,
                 isPrinting = isThermalPrinting,
+                invoiceStyle = invoiceStyle,
+                onSelectInvoiceStyle = { viewModel.setInvoiceStyle(it) },
                 onUpdateConfig = { newCfg -> viewModel.updateThermalPrinterConfig(newCfg) },
                 onOpenBluetoothPicker = { showBluetoothPrinterPicker = true },
                 onReconnectSavedPrinter = {
@@ -1008,6 +1010,101 @@ fun SettingsScreen(
                         Icon(imageVector = Icons.Default.Link, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("فتح منشئ رابط تحميل APK الخارجي المؤقت + QR", fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+            }
+        }
+
+        // Sample Catalog & Customers Seeding Card (بيانات السلع والعملاء الافتراضية للتجربة)
+        item {
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = semanticColors.cardElevated),
+                elevation = CardDefaults.cardElevation(defaultElevation = if (semanticColors.isDark) 0.dp else 2.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("settings_seed_sample_data_card")
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Store,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+                            Column {
+                                Text(
+                                    text = "السلع والعملاء الافتراضيون (للتجربة)",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = "${products.size} سلع بالمخزون • ${customers.size} عملاء مسجلين",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF10B981).copy(alpha = 0.16f),
+                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f))
+                        ) {
+                            Text(
+                                text = "جاهز للتجربة ✓",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF059669),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "تم تضمين تشكيلة من المواد الاستهلاكية والغذائية بأسعار دقيقة وصور واضحة، بالإضافة لعملاء نقد وعملاء جملة بديون سابقة لتجربة سير البيع والمعاينة المحسنة.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Button(
+                        onClick = { viewModel.seedSampleCatalogAndCustomers(force = true) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .testTag("seed_sample_catalog_btn"),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "إضافة / إعادة تحميل السلع والعملاء الافتراضيين الآن",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.5.sp
+                        )
                     }
                 }
             }
@@ -3175,36 +3272,6 @@ private fun ThemeStudioSettingsCard(
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            // 4. Default Invoice Style
-            Text(
-                text = "قالب طباعة الفاتورة الافتراضي:",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val availableStyles = listOf(
-                    InvoiceStyle.BON_DE_LIVRAISON to "📋 Bon de livraison",
-                    InvoiceStyle.THERMAL_DETAILED to "🧾 وصل التسليم",
-                    InvoiceStyle.THERMAL_POS to "🖨️ حراري POS",
-                    InvoiceStyle.SIMPLE to "📄 Bon de commande",
-                    InvoiceStyle.TEMPLATE_K to "✨ قالب K"
-                )
-                availableStyles.forEach { (style, label) ->
-                    FilterChip(
-                        selected = invoiceStyle == style,
-                        onClick = { onSelectInvoiceStyle(style) },
-                        label = { Text(label, fontSize = 11.5.sp) }
-                    )
-                }
-            }
         }
     }
 }

@@ -18,10 +18,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -1607,16 +1610,320 @@ fun BluetoothPrinterPickerDialog(
     onDisconnect: () -> Unit = {},
     onDismiss: () -> Unit = {}
 ) {
-    AlertDialog(
+    val context = LocalContext.current
+    var devices by remember { mutableStateOf(emptyList<com.example.utils.BluetoothPrinterDeviceInfo>()) }
+    var isScanning by remember { mutableStateOf(false) }
+
+    val bluetoothAdapter = remember {
+        try {
+            android.bluetooth.BluetoothAdapter.getDefaultAdapter()
+        } catch (e: Exception) {
+            null
+        }
+    }
+    var isBluetoothEnabled by remember { mutableStateOf(bluetoothAdapter?.isEnabled == true) }
+
+    val refreshDevices = {
+        isScanning = true
+        isBluetoothEnabled = bluetoothAdapter?.isEnabled == true
+        devices = try {
+            loadPairedDevices()
+        } catch (e: Exception) {
+            emptyList()
+        }
+        isScanning = false
+    }
+
+    LaunchedEffect(Unit) {
+        refreshDevices()
+    }
+
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text("اختيار طابعة البلوتوث") },
-        text = { Text("البحث عن الطابعات الحرارية المتصلة عبر البلوتوث...") },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("إغلاق")
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .fillMaxWidth(0.925f)
+                .heightIn(max = 680.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Bluetooth,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "إعدادات وطابعات البلوتوث الحرارية",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "اختر طابعة POS أو ابحث عن الأجهزة القريبة",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                // Bluetooth Power Control Card
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isBluetoothEnabled) Icons.Default.BluetoothConnected else Icons.Default.BluetoothDisabled,
+                                contentDescription = null,
+                                tint = if (isBluetoothEnabled) Color(0xFF10B981) else Color.Gray,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = if (isBluetoothEnabled) "حالة البلوتوث: مفعل ✓" else "حالة البلوتوث: متوقف",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "قم بتشغيل البلوتوث واتصال الطابعة من إعدادات النظام إن لزم",
+                                    fontSize = 10.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = isBluetoothEnabled,
+                            onCheckedChange = { enabled ->
+                                isBluetoothEnabled = enabled
+                                try {
+                                    val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "يرجى تشغيل البلوتوث من إعدادات الجهاز", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // Action Bar: Scan & Refresh
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = { refreshDevices() },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                    ) {
+                        if (isScanning) {
+                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("جاري البحث...", fontSize = 12.sp)
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("بحث وتحديث الأجهزة", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "لا يمكن فتح إعدادات البلوتوث", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.height(44.dp)
+                    ) {
+                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("إعدادات النظام", fontSize = 11.5.sp)
+                    }
+                }
+
+                // Devices List
+                Text(
+                    text = "الطابعات والأجهزة المكتشفة (${devices.size}):",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.5.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                if (devices.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.PrintDisabled,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                text = "لم يتم العثور على طابعات بلوتوث مقترنة.",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "تأكد من اقتران الطابعة الحرارية عبر إعدادات بلوتوث الهاتف أولاً.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 260.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(devices) { device ->
+                            val isSelected = device.address.equals(currentSelectedAddress, ignoreCase = true)
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelectAndConnectPrinter(device)
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Print,
+                                            contentDescription = null,
+                                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                text = device.name.ifBlank { "طابعة حرارية غير معروفة" },
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = device.address,
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Button(
+                                        onClick = { onSelectAndConnectPrinter(device) },
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                                        ),
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text(
+                                            text = if (isSelected) "متصلة ✓" else "اتصال",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Footer Actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("إغلاق النافذة", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -1645,6 +1952,8 @@ fun ThermalPrinterSettingsCard(
     config: com.example.utils.ThermalPrinterConfig,
     connectionState: Any? = null,
     isPrinting: Boolean = false,
+    invoiceStyle: com.example.data.models.InvoiceStyle = com.example.data.models.InvoiceStyle.BON_DE_LIVRAISON,
+    onSelectInvoiceStyle: (com.example.data.models.InvoiceStyle) -> Unit = {},
     onUpdateConfig: (com.example.utils.ThermalPrinterConfig) -> Unit = {},
     onOpenBluetoothPicker: () -> Unit = {},
     onReconnectSavedPrinter: () -> Unit = {},
@@ -1760,45 +2069,86 @@ fun ThermalPrinterSettingsCard(
             if (isExpanded) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                // Connection management
-                Row(
+                // Connection management & Search
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
-                        onClick = onOpenBluetoothPicker,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .testTag("thermal_pick_printer_btn")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.Bluetooth, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(if (isConnected) "تغيير الطابعة" else "اختيار طابعة بلوتوث", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
-                    }
+                        Button(
+                            onClick = onOpenBluetoothPicker,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp)
+                                .testTag("thermal_pick_printer_btn")
+                        ) {
+                            Icon(Icons.Default.Bluetooth, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (isConnected) "تغيير الطابعة" else "🔍 بحث والاتصال بالطابعة", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                        }
 
-                    if (isConnected) {
-                        OutlinedButton(
-                            onClick = onDisconnectPrinter,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(44.dp)
-                        ) {
-                            Text("قطع الاتصال", color = Color(0xFFEF4444), fontSize = 12.sp)
+                        if (isConnected) {
+                            OutlinedButton(
+                                onClick = onDisconnectPrinter,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.height(44.dp)
+                            ) {
+                                Text("قطع الاتصال", color = Color(0xFFEF4444), fontSize = 12.sp)
+                            }
+                        } else if (config.lastPrinterAddress.isNotBlank()) {
+                            OutlinedButton(
+                                onClick = onReconnectSavedPrinter,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.height(44.dp)
+                            ) {
+                                Text("إعادة اتصال", fontSize = 12.sp)
+                            }
                         }
-                    } else if (config.lastPrinterAddress.isNotBlank()) {
-                        OutlinedButton(
-                            onClick = onReconnectSavedPrinter,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(44.dp)
-                        ) {
-                            Text("إعادة اتصال", fontSize = 12.sp)
-                        }
+                    }
+                    if (!isConnected) {
+                        Text(
+                            text = "💡 انقر على زر البحث والاتصال أعلاه للعثور على طابعات البلوتوث الحرارية القريبة والاقتران بها مباشرة.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
-                // Paper width selector
+                // Default Invoice Template Selector ( قوالب الطباعة الحرارية )
+                Text(
+                    text = "قالب طباعة الفاتورة الافتراضي",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val availableStyles = listOf(
+                        com.example.data.models.InvoiceStyle.BON_DE_LIVRAISON to "📋 Bon de livraison",
+                        com.example.data.models.InvoiceStyle.THERMAL_DETAILED to "🧾 وصل التسليم",
+                        com.example.data.models.InvoiceStyle.THERMAL_POS to "🖨️ حراري POS",
+                        com.example.data.models.InvoiceStyle.SIMPLE to "📄 Bon de commande",
+                        com.example.data.models.InvoiceStyle.TEMPLATE_K to "✨ قالب K"
+                    )
+                    availableStyles.forEach { (style, label) ->
+                        FilterChip(
+                            selected = invoiceStyle == style,
+                            onClick = { onSelectInvoiceStyle(style) },
+                            label = { Text(label, fontSize = 11.5.sp) }
+                        )
+                    }
+                }
+
+                // Paper width selector (58mm, 80mm, 104mm)
                 Text(
                     text = "عرض الورق الحراري",
                     fontWeight = FontWeight.Bold,
@@ -1807,45 +2157,76 @@ fun ThermalPrinterSettingsCard(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val is80 = config.paperWidthMm == 80
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (is80) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, if (is80) MaterialTheme.colorScheme.primary else Color.Transparent),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                onUpdateConfig(config.copy(paperWidthMm = 80, paperWidth = com.example.utils.ThermalPaperWidth.WIDTH_80MM))
-                            }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                    val widths = listOf(
+                        80 to "80 مم (قياسي)",
+                        58 to "58 مم (محمول)",
+                        104 to "104 مم (عريض)"
+                    )
+                    widths.forEach { (wMm, label) ->
+                        val isSelected = config.paperWidthMm == wMm
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    val pWidth = com.example.utils.ThermalPaperWidth.fromMm(wMm)
+                                    onUpdateConfig(config.copy(paperWidthMm = wMm, paperWidth = pWidth))
+                                }
                         ) {
-                            Text("80 مم (قياسي)", fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
-                            Text("طابعات الكاشير الثابتة", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Box(
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (isSelected) FontWeight.Black else FontWeight.SemiBold,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
+                }
 
-                    val is58 = config.paperWidthMm == 58
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (is58) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, if (is58) MaterialTheme.colorScheme.primary else Color.Transparent),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                onUpdateConfig(config.copy(paperWidthMm = 58, paperWidth = com.example.utils.ThermalPaperWidth.WIDTH_58MM))
-                            }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                // Default copies count selector
+                Text(
+                    text = "عدد النسخ الافتراضية للطباعة",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(1, 2, 3).forEach { copies ->
+                        val isSelected = config.copyCount == copies
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    onUpdateConfig(config.copy(copyCount = copies, defaultCopies = copies))
+                                }
                         ) {
-                            Text("58 مم (محمول)", fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
-                            Text("طابعات البلوتوث اليدوية", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Box(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$copies نسخة",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Black else FontWeight.SemiBold,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     }
                 }
@@ -1894,7 +2275,7 @@ fun ThermalPrinterSettingsCard(
                     }
                 }
 
-                // Toggles
+                // Professional Toggles
                 PrinterSettingCheckRow(
                     title = "طباعة وصل حراري تلقائياً عند الدفع",
                     subtitle = "إرسال الفاتورة للطابعة الحرارية فور الضغط على تأكيد البيع",
@@ -1903,10 +2284,52 @@ fun ThermalPrinterSettingsCard(
                 )
 
                 PrinterSettingCheckRow(
-                    title = "طباعة شعار المتجر وكود QR في الوصل",
-                    subtitle = "تضمين لوجو المتجر ورمز التحقق في رأس وتذييل الوصل",
-                    checked = config.printStoreLogo,
-                    onCheckedChange = { onUpdateConfig(config.copy(printStoreLogo = it, printQrCode = it)) }
+                    title = "طباعة الشعار البنكي / شعار المحجر أو المتجر",
+                    subtitle = "تضمين لوجو أو طابع المؤسسة في رأس الفاتورة",
+                    checked = config.printBankLogo,
+                    onCheckedChange = { onUpdateConfig(config.copy(printBankLogo = it, printStoreLogo = it)) }
+                )
+
+                PrinterSettingCheckRow(
+                    title = "طباعة باركود الفاتورة",
+                    subtitle = "تضمين باركود رقم الفاتورة السريع في أسفل الوصل",
+                    checked = config.printBarcode,
+                    onCheckedChange = { onUpdateConfig(config.copy(printBarcode = it)) }
+                )
+
+                PrinterSettingCheckRow(
+                    title = "طباعة QR Code الفاتورة",
+                    subtitle = "رمز الاستجابة السريع للتحقق الرقمي من الفاتورة",
+                    checked = config.printQrCode,
+                    onCheckedChange = { onUpdateConfig(config.copy(printQrCode = it)) }
+                )
+
+                PrinterSettingCheckRow(
+                    title = "فتح درج النقود تلقائياً (Cash Drawer Kick)",
+                    subtitle = "إرسال أمر فتح الدرج للطابعة الحرارية عند كل عملية بيع ناجحة",
+                    checked = config.openCashDrawer,
+                    onCheckedChange = { onUpdateConfig(config.copy(openCashDrawer = it)) }
+                )
+
+                // Custom Header / Footer inputs
+                OutlinedTextField(
+                    value = config.headerCustomMessage,
+                    onValueChange = { onUpdateConfig(config.copy(headerCustomMessage = it)) },
+                    label = { Text("رسالة رأس الوصل المخصصة (اختياري)") },
+                    placeholder = { Text("مثال: رخصة رقم ... / س.ت ...") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = config.footerCustomMessage,
+                    onValueChange = { onUpdateConfig(config.copy(footerCustomMessage = it)) },
+                    label = { Text("رسالة تذييل الوصل المخصصة") },
+                    placeholder = { Text("مثال: شكراً لزيارتكم - البضاعة المباعة لا ترد") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
 
                 // Test Print

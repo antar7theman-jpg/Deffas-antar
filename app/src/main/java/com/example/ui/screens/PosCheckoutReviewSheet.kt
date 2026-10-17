@@ -32,14 +32,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.models.ArchivedInvoice
 import com.example.data.models.InvoiceStyle
@@ -231,7 +235,8 @@ fun PosCheckoutReviewSheet(
             decorFitsSystemWindows = false
         )
     ) {
-        Box(
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.62f))
@@ -278,28 +283,36 @@ fun PosCheckoutReviewSheet(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // Right Side (Child 1 in RTL): Title & Items count
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "المعاينة وإتمام البيع",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = colorScheme.onSurface
+                                    )
+                                    Surface(
+                                        color = colorScheme.primaryContainer,
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Text(
+                                            text = "${cartItems.size} أصناف • $totalUnitsCount ق",
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+
+                                // Left Side (Child 2 in RTL): Actions (+ مسح صنف & Close button)
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Surface(
-                                        onClick = onDismiss,
-                                        shape = CircleShape,
-                                        color = colorScheme.surfaceContainerHigh,
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .testTag("close_checkout_review_button")
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                Icons.Default.Close,
-                                                contentDescription = "إغلاق المراجعة",
-                                                tint = colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-
                                     Surface(
                                         onClick = { showCheckoutBarcodeScanner = true },
                                         shape = RoundedCornerShape(10.dp),
@@ -326,30 +339,24 @@ fun PosCheckoutReviewSheet(
                                             )
                                         }
                                     }
-                                }
 
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
                                     Surface(
-                                        color = colorScheme.primaryContainer,
-                                        shape = RoundedCornerShape(10.dp)
+                                        onClick = onDismiss,
+                                        shape = CircleShape,
+                                        color = colorScheme.surfaceContainerHigh,
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .testTag("close_checkout_review_button")
                                     ) {
-                                        Text(
-                                            text = "${cartItems.size} أصناف • $totalUnitsCount ق",
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = colorScheme.onPrimaryContainer
-                                        )
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                Icons.Default.Close,
+                                                contentDescription = "إغلاق المراجعة",
+                                                tint = colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
-                                    Text(
-                                        text = "المعاينة وإتمام البيع",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = colorScheme.onSurface
-                                    )
                                 }
                             }
 
@@ -430,6 +437,13 @@ fun PosCheckoutReviewSheet(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
+                                        Text(
+                                            text = "اختيار طريقة الدفع النهائية والعميل:",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = colorScheme.onSurface
+                                        )
+
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
                                             color = if (isAllCredit || hasAnyItemDebt) debtContainerColor else colorScheme.primaryContainer
@@ -442,99 +456,13 @@ fun PosCheckoutReviewSheet(
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                             )
                                         }
-
-                                        Text(
-                                            text = "اختيار طريقة الدفع النهائية والعميل:",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = colorScheme.onSurface
-                                        )
                                     }
 
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        // All Cart Debt Button (Left)
-                                        Surface(
-                                            onClick = { viewModel.setPosPaymentMethod("DEBT") },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(48.dp)
-                                                .testTag("checkout_all_credit_btn"),
-                                            shape = RoundedCornerShape(14.dp),
-                                            color = if (isAllCredit) debtContainerColor else colorScheme.surface,
-                                            border = BorderStroke(
-                                                width = if (isAllCredit) 1.8.dp else 1.dp,
-                                                color = if (isAllCredit) debtBorderColor else colorScheme.outlineVariant
-                                            )
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .padding(horizontal = 6.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center
-                                            ) {
-                                                Text(
-                                                    text = "كل السلة دين",
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    fontSize = 12.sp,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    color = if (isAllCredit) debtAccentColor else colorScheme.onSurface
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Icon(
-                                                    Icons.Default.WarningAmber,
-                                                    contentDescription = null,
-                                                    tint = debtAccentColor,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        }
-
-                                        // Bank/Wallet Transfer Button (Center)
-                                        val isTransferSelected = paymentMethod == "TRANSFER"
-                                        Surface(
-                                            onClick = { viewModel.setPosPaymentMethod("TRANSFER") },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(48.dp)
-                                                .testTag("checkout_transfer_btn"),
-                                            shape = RoundedCornerShape(14.dp),
-                                            color = if (isTransferSelected) colorScheme.primaryContainer else colorScheme.surface,
-                                            border = BorderStroke(
-                                                width = if (isTransferSelected) 1.8.dp else 1.dp,
-                                                color = if (isTransferSelected) colorScheme.primary else colorScheme.outlineVariant
-                                            )
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .padding(horizontal = 6.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center
-                                            ) {
-                                                Text(
-                                                    text = "تحويل",
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    fontSize = 12.5.sp,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    color = if (isTransferSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Icon(
-                                                    Icons.Default.AccountBalanceWallet,
-                                                    contentDescription = null,
-                                                    tint = if (isTransferSelected) colorScheme.primary else colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        }
-
-                                        // Cash Payment Button (Right)
+                                        // 1. Cash Payment Button (Right in RTL)
                                         val isCashSelected = paymentMethod == "CASH"
                                         Surface(
                                             onClick = { viewModel.setPosPaymentMethod("CASH") },
@@ -556,6 +484,13 @@ fun PosCheckoutReviewSheet(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.Center
                                             ) {
+                                                Icon(
+                                                    Icons.Default.Payments,
+                                                    contentDescription = null,
+                                                    tint = if (isCashSelected) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
                                                     text = "دفع نقدي",
                                                     fontWeight = FontWeight.ExtraBold,
@@ -564,12 +499,84 @@ fun PosCheckoutReviewSheet(
                                                     overflow = TextOverflow.Ellipsis,
                                                     color = if (isCashSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface
                                                 )
-                                                Spacer(modifier = Modifier.width(4.dp))
+                                            }
+                                        }
+
+                                        // 2. Bank/Wallet Transfer Button (Center)
+                                        val isTransferSelected = paymentMethod == "TRANSFER"
+                                        Surface(
+                                            onClick = { viewModel.setPosPaymentMethod("TRANSFER") },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(48.dp)
+                                                .testTag("checkout_transfer_btn"),
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = if (isTransferSelected) colorScheme.primaryContainer else colorScheme.surface,
+                                            border = BorderStroke(
+                                                width = if (isTransferSelected) 1.8.dp else 1.dp,
+                                                color = if (isTransferSelected) colorScheme.primary else colorScheme.outlineVariant
+                                            )
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .padding(horizontal = 6.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
                                                 Icon(
-                                                    Icons.Default.Payments,
+                                                    Icons.Default.AccountBalanceWallet,
                                                     contentDescription = null,
-                                                    tint = if (isCashSelected) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                                    tint = if (isTransferSelected) colorScheme.primary else colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "تحويل",
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    fontSize = 12.5.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    color = if (isTransferSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+
+                                        // 3. All Cart Debt Button (Left in RTL)
+                                        Surface(
+                                            onClick = { viewModel.setPosPaymentMethod("DEBT") },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(48.dp)
+                                                .testTag("checkout_all_credit_btn"),
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = if (isAllCredit) debtContainerColor else colorScheme.surface,
+                                            border = BorderStroke(
+                                                width = if (isAllCredit) 1.8.dp else 1.dp,
+                                                color = if (isAllCredit) debtBorderColor else colorScheme.outlineVariant
+                                            )
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .padding(horizontal = 6.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.WarningAmber,
+                                                    contentDescription = null,
+                                                    tint = debtAccentColor,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "كل السلة دين",
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    fontSize = 12.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    color = if (isAllCredit) debtAccentColor else colorScheme.onSurface
                                                 )
                                             }
                                         }
@@ -601,24 +608,18 @@ fun PosCheckoutReviewSheet(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = colorScheme.primaryContainer
-                                            ) {
-                                                Text(
-                                                    text = if (selectedCustomer == null) "اختيار / إضافة عميل" else "تغيير العميل",
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = colorScheme.onPrimaryContainer,
-                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                                                )
-                                            }
-
+                                            // Right Side (Child 1 in RTL): Customer Name and Info
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                Column(horizontalAlignment = Alignment.End) {
+                                                Icon(
+                                                    Icons.Default.Person,
+                                                    contentDescription = null,
+                                                    tint = colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Column(horizontalAlignment = Alignment.Start) {
                                                     Text(
                                                         text = selectedCustomer?.name ?: "عميل نقدي عام",
                                                         style = MaterialTheme.typography.bodyMedium,
@@ -636,15 +637,24 @@ fun PosCheckoutReviewSheet(
                                                         Text(
                                                             text = "مديونية سابقة: ${String.format(Locale.US, "%.2f", selectedCustomer!!.balanceDebt)} $currency",
                                                             style = MaterialTheme.typography.labelSmall,
-                                                            color = debtAccentColor
+                                                            color = debtAccentColor,
+                                                            fontWeight = FontWeight.Bold
                                                         )
                                                     }
                                                 }
-                                                Icon(
-                                                    Icons.Default.Person,
-                                                    contentDescription = null,
-                                                    tint = colorScheme.primary,
-                                                    modifier = Modifier.size(20.dp)
+                                            }
+
+                                            // Left Side (Child 2 in RTL): Selection Button
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = colorScheme.primaryContainer
+                                            ) {
+                                                Text(
+                                                    text = if (selectedCustomer == null) "اختيار / إضافة عميل" else "تغيير العميل",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colorScheme.onPrimaryContainer,
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                                                 )
                                             }
                                         }
@@ -673,34 +683,17 @@ fun PosCheckoutReviewSheet(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
+                                        Text(
+                                            text = "الخصم السريع على الفاتورة:",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = colorScheme.onSurface
+                                        )
+
                                         Row(
                                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            // Fixed Amount Toggle
-                                            Surface(
-                                                onClick = { viewModel.setInvoiceDiscountMode(false) },
-                                                shape = RoundedCornerShape(10.dp),
-                                                color = if (!isInvoiceDiscountPercent) colorScheme.primaryContainer else colorScheme.surface,
-                                                border = BorderStroke(
-                                                    1.dp,
-                                                    if (!isInvoiceDiscountPercent) colorScheme.primary else colorScheme.outlineVariant
-                                                ),
-                                                modifier = Modifier.height(34.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier.padding(horizontal = 10.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = "$currency مبلغ ثابت",
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = if (!isInvoiceDiscountPercent) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-
                                             // Percent Toggle
                                             Surface(
                                                 onClick = { viewModel.setInvoiceDiscountMode(true) },
@@ -724,14 +717,31 @@ fun PosCheckoutReviewSheet(
                                                     )
                                                 }
                                             }
-                                        }
 
-                                        Text(
-                                            text = "الخصم السريع على الفاتورة:",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = colorScheme.onSurface
-                                        )
+                                            // Fixed Amount Toggle
+                                            Surface(
+                                                onClick = { viewModel.setInvoiceDiscountMode(false) },
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = if (!isInvoiceDiscountPercent) colorScheme.primaryContainer else colorScheme.surface,
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    if (!isInvoiceDiscountPercent) colorScheme.primary else colorScheme.outlineVariant
+                                                ),
+                                                modifier = Modifier.height(34.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.padding(horizontal = 10.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "$currency مبلغ ثابت",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (!isInvoiceDiscountPercent) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
 
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -823,29 +833,29 @@ fun PosCheckoutReviewSheet(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Switch(
-                                            checked = isInvoiceTvaEnabled,
-                                            onCheckedChange = viewModel::setInvoiceTvaEnabled,
-                                            modifier = Modifier.testTag("checkout_tva_switch")
-                                        )
-
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text(
-                                                text = "ضريبة القيمة المضافة (TVA):",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = colorScheme.primary
-                                            )
                                             Icon(
                                                 Icons.Default.AccountBalance,
                                                 contentDescription = null,
                                                 tint = colorScheme.primary,
                                                 modifier = Modifier.size(18.dp)
                                             )
+                                            Text(
+                                                text = "ضريبة القيمة المضافة (TVA):",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = colorScheme.primary
+                                            )
                                         }
+
+                                        Switch(
+                                            checked = isInvoiceTvaEnabled,
+                                            onCheckedChange = viewModel::setInvoiceTvaEnabled,
+                                            modifier = Modifier.testTag("checkout_tva_switch")
+                                        )
                                     }
 
                                     AnimatedVisibility(visible = isInvoiceTvaEnabled) {
@@ -924,16 +934,16 @@ fun PosCheckoutReviewSheet(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "${cartItems.size} أصناف • $totalUnitsCount قطعة",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colorScheme.primary
-                                    )
-                                    Text(
                                         text = "مراجعة وتعديل أصناف السلة:",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "${cartItems.size} أصناف • $totalUnitsCount قطعة",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colorScheme.primary
                                     )
                                 }
                             }
@@ -1023,16 +1033,16 @@ fun PosCheckoutReviewSheet(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = "${String.format(Locale.US, "%.2f", subtotal)} $currency",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = colorScheme.onSurface
-                                            )
-                                            Text(
                                                 text = "المجموع الفرعي:",
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = "${String.format(Locale.US, "%.2f", subtotal)} $currency",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = colorScheme.onSurface
                                             )
                                         }
 
@@ -1043,15 +1053,15 @@ fun PosCheckoutReviewSheet(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = "- ${String.format(Locale.US, "%.2f", invoiceDiscountAmount)} $currency",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = colorScheme.error
-                                                )
-                                                Text(
                                                     text = "خصم الفاتورة:",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     fontWeight = FontWeight.SemiBold,
+                                                    color = colorScheme.error
+                                                )
+                                                Text(
+                                                    text = "- ${String.format(Locale.US, "%.2f", invoiceDiscountAmount)} $currency",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
                                                     color = colorScheme.error
                                                 )
                                             }
@@ -1064,15 +1074,15 @@ fun PosCheckoutReviewSheet(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = "+ ${String.format(Locale.US, "%.2f", invoiceTvaAmount)} $currency",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = colorScheme.primary
-                                                )
-                                                Text(
                                                     text = "ضريبة القيمة المضافة (TVA):",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     fontWeight = FontWeight.SemiBold,
+                                                    color = colorScheme.primary
+                                                )
+                                                Text(
+                                                    text = "+ ${String.format(Locale.US, "%.2f", invoiceTvaAmount)} $currency",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
                                                     color = colorScheme.primary
                                                 )
                                             }
@@ -1144,15 +1154,15 @@ fun PosCheckoutReviewSheet(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = "- ${String.format(Locale.US, "%.2f", selectedCustomer!!.loyaltyRewardValue)} $currency",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF10B981)
-                                                )
-                                                Text(
                                                     text = "خصم مكافأة ولاء العملاء:",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     fontWeight = FontWeight.SemiBold,
+                                                    color = Color(0xFF10B981)
+                                                )
+                                                Text(
+                                                    text = "- ${String.format(Locale.US, "%.2f", selectedCustomer!!.loyaltyRewardValue)} $currency",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
                                                     color = Color(0xFF10B981)
                                                 )
                                             }
@@ -1165,15 +1175,15 @@ fun PosCheckoutReviewSheet(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = "${String.format(Locale.US, "%.2f", totalDebtPortion)} $currency",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = debtAccentColor
-                                                )
-                                                Text(
                                                     text = "المبلغ المسجل كدين (آجل):",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     fontWeight = FontWeight.Bold,
+                                                    color = debtAccentColor
+                                                )
+                                                Text(
+                                                    text = "${String.format(Locale.US, "%.2f", totalDebtPortion)} $currency",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.ExtraBold,
                                                     color = debtAccentColor
                                                 )
                                             }
@@ -1190,16 +1200,16 @@ fun PosCheckoutReviewSheet(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = "${String.format(Locale.US, "%.2f", netTotal)} $currency",
-                                                style = MaterialTheme.typography.headlineSmall,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = colorScheme.primary
-                                            )
-                                            Text(
                                                 text = "المجموع الصافي (المبلغ النهائي):",
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 color = colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "${String.format(Locale.US, "%.2f", netTotal)} $currency",
+                                                style = MaterialTheme.typography.headlineSmall,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = colorScheme.primary
                                             )
                                         }
                                     }
@@ -1234,6 +1244,24 @@ fun PosCheckoutReviewSheet(
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.ReceiptLong,
+                                                        contentDescription = null,
+                                                        tint = brandBlue,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                    Text(
+                                                        text = "معاينة الفاتورة الورقية الحية:",
+                                                        style = MaterialTheme.typography.titleSmall,
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        color = colorScheme.onSurface
+                                                    )
+                                                }
+
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1291,24 +1319,6 @@ fun PosCheckoutReviewSheet(
                                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                                         )
                                                     }
-                                                }
-
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                ) {
-                                                    Text(
-                                                        text = "معاينة الفاتورة الورقية الحية:",
-                                                        style = MaterialTheme.typography.titleSmall,
-                                                        fontWeight = FontWeight.ExtraBold,
-                                                        color = colorScheme.onSurface
-                                                    )
-                                                    Icon(
-                                                        Icons.Default.ReceiptLong,
-                                                        contentDescription = null,
-                                                        tint = brandBlue,
-                                                        modifier = Modifier.size(18.dp)
-                                                    )
                                                 }
                                             }
 
@@ -1421,17 +1431,16 @@ fun PosCheckoutReviewSheet(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = "${String.format(Locale.US, "%.2f", netTotal)} $currency",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = colorScheme.primary
-                                    )
-
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
+                                        Text(
+                                            text = "المبلغ النهائي:",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colorScheme.onSurface
+                                        )
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
                                             color = if (isAllCredit || hasAnyItemDebt) debtContainerColor else colorScheme.primaryContainer
@@ -1451,13 +1460,14 @@ fun PosCheckoutReviewSheet(
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                             )
                                         }
-                                        Text(
-                                            text = "المبلغ النهائي:",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = colorScheme.onSurface
-                                        )
                                     }
+
+                                    Text(
+                                        text = "${String.format(Locale.US, "%.2f", netTotal)} $currency",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = colorScheme.primary
+                                    )
                                 }
                             }
 
@@ -1611,6 +1621,7 @@ fun PosCheckoutReviewSheet(
             }
         }
     }
+}
 
     // Per-Item Discount Modal
     itemForDiscountDialog?.let { currentItem ->
@@ -2434,137 +2445,169 @@ private fun CheckoutReviewItemCard(
                     .fillMaxWidth()
                     .padding(14.dp)
             ) {
-            // Top Row: Delete Icon + Total Price (Left) | Product Name + Index Badge (Right)
+            // Top Row: Product Name + Index Badge + Image (Right) | Line Total + Calculation + Delete Icon (Left)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                // Left side: Delete button + Line Total + Formula
+                // Right side (Child 1 in RTL): Product Thumbnail + Name + Badge + Package Info
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Surface(
-                        onClick = onRemove,
-                        shape = RoundedCornerShape(10.dp),
-                        color = colorScheme.errorContainer.copy(alpha = 0.65f),
-                        modifier = Modifier
-                            .size(34.dp)
-                            .testTag("checkout_delete_item_${item.product.id}")
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "حذف السلعة",
-                                tint = colorScheme.error,
-                                modifier = Modifier.size(18.dp)
-                            )
+                    val prodImg = item.product.imageUrl.ifBlank { item.product.imagePath }
+                    if (prodImg.isNotBlank()) {
+                        AsyncImage(
+                            model = prodImg,
+                            contentDescription = item.product.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(colorScheme.surfaceContainerHighest)
+                                .clickable { onProductNameClick() }
+                        )
+                    } else {
+                        Surface(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(10.dp)),
+                            color = colorScheme.primaryContainer.copy(alpha = 0.6f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "🛒",
+                                    fontSize = 20.sp
+                                )
+                            }
                         }
                     }
 
-                    Column(horizontalAlignment = Alignment.Start) {
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    text = "#$index",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                            Text(
+                                text = item.product.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .clickable { onProductNameClick() }
+                                    .testTag("checkout_item_name_${item.product.id}")
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "${String.format(Locale.US, "%.2f", item.customUnitPrice)} $currency / قطعة • العبوة: ${String.format(Locale.US, "%.2f", item.customCartonPrice)} $currency",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (item.isCustomPriceModified) colorScheme.primary else colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { onEditPriceClick() }
+                        )
+                        if (item.customPriceCustomerName != null) {
+                            Text(
+                                text = "👤 سعر خاص للزبون: ${item.customPriceCustomerName}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colorScheme.primary,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                    }
+                }
+
+                // Left side (Child 2 in RTL): Line Total + Calculation Formula + Delete Icon
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
                             text = "${String.format(Locale.US, "%.2f", item.lineSubtotal)} $currency",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = colorScheme.primary,
-                            fontSize = 18.sp
+                            fontSize = 17.5.sp
                         )
-                        Text(
-                            text = "${String.format(Locale.US, "%.2f", item.customUnitPrice)} × ${item.effectiveUnitsDeducted}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
 
-                // Right side: Product Name + Index Badge + Unit & Package Price
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Text(
-                            text = item.product.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = colorScheme.onSurface,
-                            textAlign = TextAlign.End,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f, fill = false)
-                                .clickable { onProductNameClick() }
-                                .testTag("checkout_item_name_${item.product.id}")
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
                         Surface(
-                            shape = CircleShape,
-                            color = colorScheme.primaryContainer
+                            onClick = onRemove,
+                            shape = RoundedCornerShape(10.dp),
+                            color = colorScheme.errorContainer.copy(alpha = 0.65f),
+                            modifier = Modifier
+                                .size(32.dp)
+                                .testTag("checkout_delete_item_${item.product.id}")
                         ) {
-                            Text(
-                                text = "#$index",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "حذف السلعة",
+                                    tint = colorScheme.error,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
                         }
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
+
                     Text(
-                        text = "${String.format(Locale.US, "%.2f", item.customUnitPrice)} $currency / قطعة • العبوة: ${String.format(Locale.US, "%.2f", item.customCartonPrice)} $currency",
+                        text = "${String.format(Locale.US, "%.2f", item.customUnitPrice)} × ${item.effectiveUnitsDeducted} ق",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (item.isCustomPriceModified) colorScheme.primary else colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.clickable { onEditPriceClick() }
+                        color = colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold
                     )
-                    if (item.customPriceCustomerName != null) {
-                        Text(
-                            text = "👤 سعر خاص: ${item.customPriceCustomerName}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colorScheme.primary,
-                            fontWeight = FontWeight.ExtraBold,
-                            textAlign = TextAlign.End
-                        )
-                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Equivalent Package Conversion Row
+            // Equivalent Package Conversion Row (Aligned to Start / Right)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Text(text = "📦", fontSize = 13.sp)
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "يعادل: ${item.fullCartonsCount} عبوة + ${item.looseUnitsCount} فردي",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = colorScheme.primary
                 )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "📦", fontSize = 13.sp)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 4 Per-Item Action Chips: (تعديل السعر - in red-circled area) | (+ دين) | (+ TVA) | (+ خصم)
+            // 4 Per-Item Action Chips: (تعديل السعر) | (+ دين) | (+ TVA) | (+ خصم)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.End),
+                horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.Start),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 1. Edit Unit & Carton Selling Price Chip (السعر بالوحدة والعبوة)
@@ -2593,6 +2636,16 @@ private fun CheckoutReviewItemCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "تعديل سعر البيع بالعبوة وبالوحدة",
+                            tint = if (item.isCustomPriceModified || item.customPriceCustomerName != null) {
+                                colorScheme.onPrimaryContainer
+                            } else {
+                                colorScheme.primary
+                            },
+                            modifier = Modifier.size(15.dp)
+                        )
                         Text(
                             text = when {
                                 item.customPriceCustomerName != null -> "سعر خاص 👤"
@@ -2606,16 +2659,6 @@ private fun CheckoutReviewItemCard(
                             } else {
                                 colorScheme.primary
                             }
-                        )
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "تعديل سعر البيع بالعبوة وبالوحدة",
-                            tint = if (item.isCustomPriceModified || item.customPriceCustomerName != null) {
-                                colorScheme.onPrimaryContainer
-                            } else {
-                                colorScheme.primary
-                            },
-                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
@@ -2636,17 +2679,17 @@ private fun CheckoutReviewItemCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(
-                            text = if (item.isItemDebt) "مسجل دين" else "+ دين",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = debtAccentColor
-                        )
                         Icon(
                             Icons.Default.AssignmentLate,
                             contentDescription = null,
                             tint = debtAccentColor,
                             modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            text = if (item.isItemDebt) "مسجل دين" else "+ دين",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = debtAccentColor
                         )
                     }
                 }
@@ -2667,6 +2710,12 @@ private fun CheckoutReviewItemCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        Icon(
+                            Icons.Default.AccountBalance,
+                            contentDescription = null,
+                            tint = if (item.hasItemTva) colorScheme.onPrimaryContainer else colorScheme.primary,
+                            modifier = Modifier.size(15.dp)
+                        )
                         Text(
                             text = if (item.hasItemTva) {
                                 "TVA ${item.itemTvaPercent.toInt()}%"
@@ -2676,12 +2725,6 @@ private fun CheckoutReviewItemCard(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = if (item.hasItemTva) colorScheme.onPrimaryContainer else colorScheme.primary
-                        )
-                        Icon(
-                            Icons.Default.AccountBalance,
-                            contentDescription = null,
-                            tint = if (item.hasItemTva) colorScheme.onPrimaryContainer else colorScheme.primary,
-                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
@@ -2703,6 +2746,12 @@ private fun CheckoutReviewItemCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        Icon(
+                            Icons.Default.LocalOffer,
+                            contentDescription = null,
+                            tint = if (hasDiscount) colorScheme.onPrimaryContainer else colorScheme.primary,
+                            modifier = Modifier.size(15.dp)
+                        )
                         Text(
                             text = if (hasDiscount) {
                                 if (item.isItemDiscountPercent) "خصم ${item.itemDiscountValue.toInt()}%"
@@ -2713,12 +2762,6 @@ private fun CheckoutReviewItemCard(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = if (hasDiscount) colorScheme.onPrimaryContainer else colorScheme.primary
-                        )
-                        Icon(
-                            Icons.Default.LocalOffer,
-                            contentDescription = null,
-                            tint = if (hasDiscount) colorScheme.onPrimaryContainer else colorScheme.primary,
-                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
@@ -2734,7 +2777,7 @@ private fun CheckoutReviewItemCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Bottom Dual Quantity Stepper Bar
+            // Bottom Dual Quantity Stepper Bar with clear Arabic labels and RTL alignment
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
@@ -2744,95 +2787,111 @@ private fun CheckoutReviewItemCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Left Side: Piece Steppers (+ | 10 ق | -)
+                    // Right Side (Child 1 in RTL): Piece Steppers with label
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        Text(
+                            text = "القطع:",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.onSurfaceVariant
+                        )
+
                         IconButton(
-                            onClick = onIncrementPiece,
-                            modifier = Modifier.size(34.dp)
+                            onClick = onDecrementPiece,
+                            modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                Icons.Default.Add,
-                                contentDescription = "زيادة قطعة",
-                                tint = colorScheme.onSurface
+                                Icons.Default.Remove,
+                                contentDescription = "إنقاص قطعة",
+                                tint = colorScheme.onSurface,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
 
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = colorScheme.primaryContainer
                         ) {
                             Text(
                                 text = "${item.effectiveUnitsDeducted} ق",
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 14.sp,
+                                fontSize = 13.5.sp,
                                 color = colorScheme.onPrimaryContainer
                             )
                         }
 
                         IconButton(
-                            onClick = onDecrementPiece,
-                            modifier = Modifier.size(34.dp)
+                            onClick = onIncrementPiece,
+                            modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                Icons.Default.Remove,
-                                contentDescription = "إنقاص قطعة",
-                                tint = colorScheme.onSurface
+                                Icons.Default.Add,
+                                contentDescription = "زيادة قطعة",
+                                tint = colorScheme.onSurface,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
 
-                    // Right Side: Box Steppers (📦 +1 | 📦 -1)
+                    // Left Side (Child 2 in RTL): Box Steppers with label
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        Text(
+                            text = "العبوات:",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.onSurfaceVariant
+                        )
+
                         Surface(
-                            onClick = onIncrementBox,
-                            shape = RoundedCornerShape(10.dp),
+                            onClick = onDecrementBox,
+                            shape = RoundedCornerShape(8.dp),
                             color = colorScheme.secondaryContainer,
                             border = BorderStroke(1.dp, colorScheme.outlineVariant),
-                            modifier = Modifier.height(34.dp)
+                            modifier = Modifier.height(32.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
-                                Text("📦", fontSize = 12.sp)
+                                Text("📦", fontSize = 11.sp)
                                 Text(
-                                    text = "+1",
+                                    text = "-1",
                                     fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     color = colorScheme.onSecondaryContainer
                                 )
                             }
                         }
 
                         Surface(
-                            onClick = onDecrementBox,
-                            shape = RoundedCornerShape(10.dp),
+                            onClick = onIncrementBox,
+                            shape = RoundedCornerShape(8.dp),
                             color = colorScheme.secondaryContainer,
                             border = BorderStroke(1.dp, colorScheme.outlineVariant),
-                            modifier = Modifier.height(34.dp)
+                            modifier = Modifier.height(32.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
-                                Text("📦", fontSize = 12.sp)
+                                Text("📦", fontSize = 11.sp)
                                 Text(
-                                    text = "-1",
+                                    text = "+1",
                                     fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     color = colorScheme.onSecondaryContainer
                                 )
                             }

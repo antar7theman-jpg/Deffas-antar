@@ -63,7 +63,17 @@ object CustomerLocationHelper {
 enum class ThermalPaperWidth(val shortLabelAr: String = "80mm", val widthMm: Int = 80) {
     WIDTH_58MM("58mm", 58),
     WIDTH_80MM("80mm", 80),
-    WIDTH_104MM("104mm", 104)
+    WIDTH_104MM("104mm", 104);
+
+    companion object {
+        fun fromMm(mm: Int): ThermalPaperWidth {
+            return when (mm) {
+                58 -> WIDTH_58MM
+                104 -> WIDTH_104MM
+                else -> WIDTH_80MM
+            }
+        }
+    }
 }
 
 enum class CheckoutThermalPrintMode {
@@ -110,7 +120,10 @@ data class ThermalPrinterConfig(
     val printDensity: String = "NORMAL",
     val autoPrintOnCheckout: Boolean = true,
     val printStoreLogo: Boolean = true,
+    val printBankLogo: Boolean = true,
+    val printBarcode: Boolean = true,
     val printQrCode: Boolean = true,
+    val openCashDrawer: Boolean = false,
     val headerCustomMessage: String = "",
     val footerCustomMessage: String = "",
     val copyCount: Int = 1,
@@ -127,21 +140,35 @@ data class ThermalPrinterConfig(
         private const val PREF_KEY_LAST_NAME = "thermal_last_name"
         private const val PREF_KEY_AUTO_CHECKOUT = "thermal_auto_checkout"
         private const val PREF_KEY_PRINT_LOGO = "thermal_print_logo"
+        private const val PREF_KEY_PRINT_BANK_LOGO = "thermal_print_bank_logo"
+        private const val PREF_KEY_PRINT_BARCODE = "thermal_print_barcode"
         private const val PREF_KEY_PRINT_QR = "thermal_print_qr"
+        private const val PREF_KEY_OPEN_CASH_DRAWER = "thermal_open_cash_drawer"
         private const val PREF_KEY_FONT_THICKNESS = "thermal_font_thickness"
+        private const val PREF_KEY_COPY_COUNT = "thermal_copy_count"
+        private const val PREF_KEY_HEADER_MSG = "thermal_header_msg"
+        private const val PREF_KEY_FOOTER_MSG = "thermal_footer_msg"
 
         fun loadFromPrefs(prefs: Any?): ThermalPrinterConfig {
             val sp = prefs as? android.content.SharedPreferences ?: return ThermalPrinterConfig()
             val widthMm = sp.getInt(PREF_KEY_PAPER_WIDTH, 80)
+            val copies = sp.getInt(PREF_KEY_COPY_COUNT, 1)
             return ThermalPrinterConfig(
                 paperWidthMm = widthMm,
-                paperWidth = if (widthMm == 58) ThermalPaperWidth.WIDTH_58MM else ThermalPaperWidth.WIDTH_80MM,
+                paperWidth = ThermalPaperWidth.fromMm(widthMm),
                 autoReconnect = sp.getBoolean(PREF_KEY_AUTO_RECONNECT, false),
                 lastPrinterAddress = sp.getString(PREF_KEY_LAST_ADDRESS, "") ?: "",
                 lastPrinterName = sp.getString(PREF_KEY_LAST_NAME, "") ?: "",
                 autoPrintOnCheckout = sp.getBoolean(PREF_KEY_AUTO_CHECKOUT, true),
                 printStoreLogo = sp.getBoolean(PREF_KEY_PRINT_LOGO, true),
+                printBankLogo = sp.getBoolean(PREF_KEY_PRINT_BANK_LOGO, true),
+                printBarcode = sp.getBoolean(PREF_KEY_PRINT_BARCODE, true),
                 printQrCode = sp.getBoolean(PREF_KEY_PRINT_QR, true),
+                openCashDrawer = sp.getBoolean(PREF_KEY_OPEN_CASH_DRAWER, false),
+                headerCustomMessage = sp.getString(PREF_KEY_HEADER_MSG, "") ?: "",
+                footerCustomMessage = sp.getString(PREF_KEY_FOOTER_MSG, "") ?: "",
+                copyCount = copies,
+                defaultCopies = copies,
                 fontThickness = ThermalFontThickness.fromId(sp.getString(PREF_KEY_FONT_THICKNESS, "NORMAL"))
             )
         }
@@ -155,8 +182,14 @@ data class ThermalPrinterConfig(
                 .putString(PREF_KEY_LAST_NAME, config.lastPrinterName)
                 .putBoolean(PREF_KEY_AUTO_CHECKOUT, config.autoPrintOnCheckout)
                 .putBoolean(PREF_KEY_PRINT_LOGO, config.printStoreLogo)
+                .putBoolean(PREF_KEY_PRINT_BANK_LOGO, config.printBankLogo)
+                .putBoolean(PREF_KEY_PRINT_BARCODE, config.printBarcode)
                 .putBoolean(PREF_KEY_PRINT_QR, config.printQrCode)
+                .putBoolean(PREF_KEY_OPEN_CASH_DRAWER, config.openCashDrawer)
+                .putString(PREF_KEY_HEADER_MSG, config.headerCustomMessage)
+                .putString(PREF_KEY_FOOTER_MSG, config.footerCustomMessage)
                 .putString(PREF_KEY_FONT_THICKNESS, config.fontThickness.id)
+                .putInt(PREF_KEY_COPY_COUNT, config.copyCount)
                 .apply()
         }
     }
@@ -260,7 +293,12 @@ data class ThermalReceiptPrintPayload(
     val developerContact: String = "",
     val templateStyle: Any? = null,
     val previousDebt: Double = 0.0,
-    val fontThickness: ThermalFontThickness = ThermalFontThickness.NORMAL
+    val fontThickness: ThermalFontThickness = ThermalFontThickness.NORMAL,
+    val printBankLogo: Boolean = true,
+    val printBarcode: Boolean = true,
+    val openCashDrawer: Boolean = false,
+    val headerCustomMessage: String = "",
+    val copyCount: Int = 1
 ) {
     companion object {
         fun createSampleTestPayload(

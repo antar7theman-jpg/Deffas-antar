@@ -828,7 +828,7 @@ fun InvoiceTemplatePreviewDialog(
                                  ) {
                                      Text(
                                          text = "سمك خط الطباعة:",
-                                         fontSize = 12.sp,
+                                         fontSize = 11.5.sp,
                                          fontWeight = FontWeight.Bold,
                                          color = colorScheme.onSurface
                                      )

@@ -194,15 +194,19 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val locale = java.util.Locale("ar")
-        java.util.Locale.setDefault(locale)
-        val config = resources.configuration
-        config.setLocale(locale)
-        config.setLayoutDirection(locale)
-        @Suppress("DEPRECATION")
-        resources.updateConfiguration(config, resources.displayMetrics)
-        window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
         super.onCreate(savedInstanceState)
+        try {
+            val locale = java.util.Locale("ar")
+            java.util.Locale.setDefault(locale)
+            val config = resources.configuration
+            config.setLocale(locale)
+            config.setLayoutDirection(locale)
+            @Suppress("DEPRECATION")
+            resources.updateConfiguration(config, resources.displayMetrics)
+            window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "Locale/RTL init error", t)
+        }
         enableEdgeToEdge()
 
         val db = AntarDatabase.getDatabase(applicationContext)
@@ -879,10 +883,9 @@ fun AFStoreMainApp(
                         AnimatedContent(
                             targetState = selectedTab,
                             transitionSpec = {
-                                (fadeIn(animationSpec = tween(150, easing = LinearOutSlowInEasing)) +
-                                    scaleIn(initialScale = 0.985f, animationSpec = tween(150, easing = LinearOutSlowInEasing)))
+                                fadeIn(animationSpec = tween(40))
                                     .togetherWith(
-                                        fadeOut(animationSpec = tween(120, easing = FastOutLinearInEasing))
+                                        fadeOut(animationSpec = tween(30))
                                     )
                             },
                             label = "MainAppTabTransition",

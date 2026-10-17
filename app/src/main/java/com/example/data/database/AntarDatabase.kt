@@ -361,7 +361,7 @@ abstract class AntarDatabase : RoomDatabase() {
             }
         }
 
-        suspend fun seedInitialDataIfEmpty(dao: StoreDao) {
+        suspend fun seedInitialDataIfEmpty(dao: StoreDao, forceAddMissing: Boolean = false) {
             val existingUsers = dao.getAllUsersOnce()
             val ownerUser = User(
                 id = 1,
@@ -410,6 +410,235 @@ abstract class AntarDatabase : RoomDatabase() {
                     currentPrimary.role != UserRole.SUPER_ADMIN
                 ) {
                     dao.insertUser(ownerUser)
+                }
+            }
+
+            val existingProducts = dao.getAllProductsOnce()
+            val sampleProducts = listOf(
+                Product(
+                    name = "زيت المائدة عافية 5 لتر",
+                    purchasePrice = 650.0,
+                    price = 750.0,
+                    stock = 48,
+                    unitsPerCarton = 4,
+                    barcode = "613000100101",
+                    cartonBarcode = "613000100102",
+                    category = "مواد غذائية وزيوت",
+                    imageUrl = "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500"
+                ),
+                Product(
+                    name = "حليب معقم كانديا 1 لتر",
+                    purchasePrice = 110.0,
+                    price = 130.0,
+                    stock = 120,
+                    unitsPerCarton = 12,
+                    barcode = "613000200201",
+                    cartonBarcode = "613000200202",
+                    category = "مشتقات الحليب والألبان",
+                    imageUrl = "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500"
+                ),
+                Product(
+                    name = "سكر أبيض بلوري 1 كغ",
+                    purchasePrice = 85.0,
+                    price = 100.0,
+                    stock = 150,
+                    unitsPerCarton = 25,
+                    barcode = "613000300301",
+                    cartonBarcode = "613000300302",
+                    category = "مواد تموينية",
+                    imageUrl = "https://images.unsplash.com/photo-1587735243615-c03f25aaff15?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1587735243615-c03f25aaff15?w=500"
+                ),
+                Product(
+                    name = "قهوة أرابيكا مطحونة 250 غ",
+                    purchasePrice = 220.0,
+                    price = 270.0,
+                    stock = 80,
+                    unitsPerCarton = 20,
+                    barcode = "613000400401",
+                    cartonBarcode = "613000400402",
+                    category = "شاي وقهوة ومشروبات",
+                    imageUrl = "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500"
+                ),
+                Product(
+                    name = "مكرونة اكسترا ريش 500 غ",
+                    purchasePrice = 55.0,
+                    price = 70.0,
+                    stock = 96,
+                    unitsPerCarton = 24,
+                    barcode = "613000500501",
+                    cartonBarcode = "613000500502",
+                    category = "عجائن ومكرونة",
+                    imageUrl = "https://images.unsplash.com/photo-1621996346565-e3d5d628169e?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1621996346565-e3d5d628169e?w=500"
+                ),
+                Product(
+                    name = "معجون طماطم مركز 400 غ",
+                    purchasePrice = 140.0,
+                    price = 170.0,
+                    stock = 72,
+                    unitsPerCarton = 24,
+                    barcode = "613000600601",
+                    cartonBarcode = "613000600602",
+                    category = "معلبات وتوابل",
+                    imageUrl = "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500"
+                ),
+                Product(
+                    name = "أرز بسمتي فاخر 5 كغ",
+                    purchasePrice = 1450.0,
+                    price = 1700.0,
+                    stock = 35,
+                    unitsPerCarton = 4,
+                    barcode = "613000700701",
+                    cartonBarcode = "613000700702",
+                    category = "حبوب وبقوليات",
+                    imageUrl = "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500"
+                ),
+                Product(
+                    name = "شاي أسود الصوير 100 كيس",
+                    purchasePrice = 180.0,
+                    price = 230.0,
+                    stock = 60,
+                    unitsPerCarton = 12,
+                    barcode = "613000800801",
+                    cartonBarcode = "613000800802",
+                    category = "شاي وقهوة ومشروبات",
+                    imageUrl = "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500"
+                ),
+                Product(
+                    name = "بسكويت شوكولاتة ماكسي بيمبو",
+                    purchasePrice = 45.0,
+                    price = 60.0,
+                    stock = 144,
+                    unitsPerCarton = 24,
+                    barcode = "613000900901",
+                    cartonBarcode = "613000900902",
+                    category = "حلويات وبسكويت",
+                    imageUrl = "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=500"
+                ),
+                Product(
+                    name = "مياه معدنية طبيعية 1.5 لتر",
+                    purchasePrice = 35.0,
+                    price = 45.0,
+                    stock = 180,
+                    unitsPerCarton = 6,
+                    barcode = "613001001001",
+                    cartonBarcode = "613001001002",
+                    category = "مشروبات ومياه",
+                    imageUrl = "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500"
+                ),
+                Product(
+                    name = "جبن مثلثات لافاش كيري 16 قطعة",
+                    purchasePrice = 175.0,
+                    price = 210.0,
+                    stock = 110,
+                    unitsPerCarton = 16,
+                    barcode = "613001101101",
+                    cartonBarcode = "613001101102",
+                    category = "مشتقات الحليب والألبان",
+                    imageUrl = "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=500"
+                ),
+                Product(
+                    name = "مسحوق غسيل أوتوماتيك 2.5 كغ",
+                    purchasePrice = 690.0,
+                    price = 820.0,
+                    stock = 45,
+                    unitsPerCarton = 6,
+                    barcode = "613001201201",
+                    cartonBarcode = "613001201202",
+                    category = "منظفات ومستلزمات منزلية",
+                    imageUrl = "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500",
+                    imagePath = "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500"
+                )
+            )
+
+            if (existingProducts.isEmpty()) {
+                dao.insertProducts(sampleProducts)
+            } else if (forceAddMissing) {
+                val currentBarcodes = existingProducts.map { it.barcode }.toSet()
+                val currentNames = existingProducts.map { it.name.trim() }.toSet()
+                val missingProducts = sampleProducts.filter {
+                    !currentBarcodes.contains(it.barcode) && !currentNames.contains(it.name.trim())
+                }
+                if (missingProducts.isNotEmpty()) {
+                    dao.insertProducts(missingProducts)
+                }
+            }
+
+            val existingCustomers = dao.getAllCustomersOnce()
+            val sampleCustomers = listOf(
+                Customer(
+                    name = "عميل نقدي عام",
+                    phone = "0000000000",
+                    address = "المتجر",
+                    balanceDebt = 0.0,
+                    totalPurchases = 15400.0
+                ),
+                Customer(
+                    name = "سوبرماركت البركة - الأخ محمد",
+                    phone = "0550123456",
+                    address = "حي السلام، الشارع التجاري الرئيسي",
+                    notes = "عميل جملة موثوق - تسوية أسبوعية",
+                    balanceDebt = 18500.0,
+                    totalPurchases = 124000.0,
+                    loyaltyPoints = 350
+                ),
+                Customer(
+                    name = "بقالة الأمانة - الحاج عمر",
+                    phone = "0661987654",
+                    address = "وسط المدينة، بجوار المسجد الكبير",
+                    notes = "توصيل دوري كل ثلاثاء",
+                    balanceDebt = 7200.0,
+                    totalPurchases = 68500.0,
+                    loyaltyPoints = 180
+                ),
+                Customer(
+                    name = "السيد أحمد بن علي",
+                    phone = "0770334455",
+                    address = "حي النخيل، عمارة ب",
+                    notes = "عميل دائم للتجزئة",
+                    balanceDebt = 1450.0,
+                    totalPurchases = 18200.0,
+                    loyaltyPoints = 95
+                ),
+                Customer(
+                    name = "مؤسسة الأمل للتوزيع والتجارة",
+                    phone = "0560778899",
+                    address = "المنطقة الصناعية، المستودع 4",
+                    notes = "توريد بالجملة مع كشوف حساب",
+                    balanceDebt = 45000.0,
+                    totalPurchases = 320000.0,
+                    loyaltyPoints = 620
+                ),
+                Customer(
+                    name = "الأخ سفيان بلقاسم",
+                    phone = "0699112233",
+                    address = "حي 500 مسكن",
+                    notes = "دفع نقدي فوري",
+                    balanceDebt = 0.0,
+                    totalPurchases = 9400.0,
+                    loyaltyPoints = 40
+                )
+            )
+
+            if (existingCustomers.isEmpty()) {
+                dao.insertCustomers(sampleCustomers)
+            } else if (forceAddMissing) {
+                val currentCustomerNames = existingCustomers.map { it.name.trim() }.toSet()
+                val missingCustomers = sampleCustomers.filter {
+                    !currentCustomerNames.contains(it.name.trim())
+                }
+                if (missingCustomers.isNotEmpty()) {
+                    dao.insertCustomers(missingCustomers)
                 }
             }
         }

@@ -31,11 +31,18 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import android.graphics.Bitmap
 import android.widget.Toast
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.example.utils.ScannedBarcodeResult
+import com.example.utils.ScannerPreferencesManager
+import com.example.utils.SmartTorchMode
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Check
@@ -220,6 +227,7 @@ fun InvoicesArchiveScreen(viewModel: AntarSalesViewModel) {
     val storeName by viewModel.storeName.collectAsState()
     val storePhone by viewModel.storePhone.collectAsState()
     var showInvoicesPdfReportDialog by remember { mutableStateOf(false) }
+    var showQrScannerDialog by remember { mutableStateOf(false) }
 
     val products by viewModel.products.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
@@ -336,11 +344,21 @@ fun InvoicesArchiveScreen(viewModel: AntarSalesViewModel) {
                         }
                     }
 
-                    UniversalReportHeaderButton(
-                        title = "التقارير PDF",
-                        tag = "invoices_pdf_report_btn",
-                        onClick = { showInvoicesPdfReportDialog = true }
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        UniversalReportHeaderButton(
+                            title = "مسح QR",
+                            tag = "scan_invoice_qr_btn",
+                            onClick = { showQrScannerDialog = true }
+                        )
+                        UniversalReportHeaderButton(
+                            title = "التقارير PDF",
+                            tag = "invoices_pdf_report_btn",
+                            onClick = { showInvoicesPdfReportDialog = true }
+                        )
+                    }
                 }
 
                 // Summary Stats Badges (Invoices Count + Total Amount)
@@ -1210,6 +1228,269 @@ fun InvoicesArchiveScreen(viewModel: AntarSalesViewModel) {
             payload = payload,
             onDismiss = { showInvoicesPdfReportDialog = false }
         )
+    }
+
+    if (showQrScannerDialog) {
+        InvoiceQrScannerDialog(
+            invoices = invoices,
+            onDismiss = { showQrScannerDialog = false },
+            onInvoiceSelected = { inv ->
+                showQrScannerDialog = false
+                previewInvoice = inv
+                Toast.makeText(context, "تم العثور على الفاتورة #${inv.invoiceId}", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+}
+
+@Composable
+fun InvoiceQrScannerDialog(
+    invoices: List<ArchivedInvoice>,
+    onDismiss: () -> Unit,
+    onInvoiceSelected: (ArchivedInvoice) -> Unit
+) {
+    val context = LocalContext.current
+    val semantic = LocalAFStoreSemanticColors.current
+    var scannedCode by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasCameraPermission = granted
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    var smartTorchMode by remember {
+        mutableStateOf(ScannerPreferencesManager.getSmartTorchMode(context))
+    }
+    var isSoundEnabled by remember {
+        mutableStateOf(ScannerPreferencesManager.isSoundEnabled(context))
+    }
+    var isVibrationEnabled by remember {
+        mutableStateOf(ScannerPreferencesManager.isVibrationEnabled(context))
+    }
+    var isAutoZoomEnabled by remember {
+        mutableStateOf(ScannerPreferencesManager.isAutoZoomEnabled(context))
+    }
+
+    fun searchAndSelectInvoice(code: String) {
+        val trimmed = code.trim()
+        if (trimmed.isBlank()) {
+            errorMessage = "الرجاء مسح أو إدخال رقم الفاتورة"
+            return
+        }
+
+        val cleanCode = trimmed.substringAfterLast("#").substringAfterLast("/").trim()
+
+        val found = invoices.find { inv ->
+            inv.invoiceId.equals(cleanCode, ignoreCase = true) ||
+            inv.invoiceId.equals(trimmed, ignoreCase = true) ||
+            inv.invoiceId.contains(cleanCode, ignoreCase = true) ||
+            cleanCode.contains(inv.invoiceId, ignoreCase = true)
+        }
+
+        if (found != null) {
+            onInvoiceSelected(found)
+        } else {
+            errorMessage = "لم يتم العثور على فاتورة مطابقة للرمز: '$trimmed'"
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .heightIn(max = 650.dp)
+                .padding(vertical = 16.dp),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp,
+            border = BorderStroke(1.dp, semantic.cardBorder)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Icon(
+                                Icons.Default.QrCode2,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(8.dp).size(22.dp)
+                            )
+                        }
+                        Text(
+                            text = "مسح QR كود الفاتورة",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                    }
+                }
+
+                HorizontalDivider()
+
+                if (hasCameraPermission) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    ) {
+                        TurboCameraBarcodeHud(
+                            isScanningActive = true,
+                            smartTorchMode = smartTorchMode,
+                            onToggleTorchMode = {
+                                val next = when (smartTorchMode) {
+                                    SmartTorchMode.OFF -> SmartTorchMode.AUTO_SMART
+                                    SmartTorchMode.AUTO_SMART -> SmartTorchMode.ALWAYS_ON
+                                    SmartTorchMode.ALWAYS_ON -> SmartTorchMode.OFF
+                                }
+                                smartTorchMode = next
+                                ScannerPreferencesManager.setSmartTorchMode(context, next)
+                            },
+                            isSoundEnabled = isSoundEnabled,
+                            onToggleSound = {
+                                isSoundEnabled = !isSoundEnabled
+                                ScannerPreferencesManager.setSoundEnabled(context, isSoundEnabled)
+                            },
+                            isVibrationEnabled = isVibrationEnabled,
+                            onToggleVibration = {
+                                isVibrationEnabled = !isVibrationEnabled
+                                ScannerPreferencesManager.setVibrationEnabled(context, isVibrationEnabled)
+                            },
+                            isAutoZoomEnabled = isAutoZoomEnabled,
+                            onToggleAutoZoom = {
+                                isAutoZoomEnabled = !isAutoZoomEnabled
+                                ScannerPreferencesManager.setAutoZoomEnabled(context, isAutoZoomEnabled)
+                            },
+                            hasActiveSelection = false,
+                            lastDecodeBadge = null,
+                            onResetScanClick = { errorMessage = null },
+                            onBarcodeScanned = { result: ScannedBarcodeResult ->
+                                scannedCode = result.code
+                                searchAndSelectInvoice(result.code)
+                            },
+                            compactMode = true
+                        )
+                    }
+                } else {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                            Text("إذن الكاميرا مطلوب لمسح رموز QR للفواتير", fontSize = 12.sp, textAlign = TextAlign.Center)
+                            Button(
+                                onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+                                modifier = Modifier.fillMaxWidth(0.8f)
+                            ) {
+                                Text("منح إذن الكاميرا")
+                            }
+                        }
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedTextField(
+                        value = scannedCode,
+                        onValueChange = {
+                            scannedCode = it
+                            if (it.isBlank()) errorMessage = null
+                        },
+                        label = { Text("أو أدخل رقم الفاتورة / الرمز يدويًا") },
+                        placeholder = { Text("مثال: INV-123456") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("invoice_qr_input_field"),
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        trailingIcon = {
+                            if (scannedCode.isNotBlank()) {
+                                IconButton(onClick = { scannedCode = "" }) {
+                                    Icon(Icons.Default.Close, contentDescription = "مسح", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("إلغاء")
+                    }
+                    Button(
+                        onClick = { searchAndSelectInvoice(scannedCode) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("invoice_qr_search_btn"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("عرض الفاتورة")
+                    }
+                }
+            }
+        }
     }
 }
 

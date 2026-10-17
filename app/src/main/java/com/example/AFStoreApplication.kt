@@ -15,10 +15,14 @@ class AFStoreApplication : Application(), ImageLoaderFactory {
     override fun attachBaseContext(base: android.content.Context) {
         val locale = java.util.Locale("ar")
         java.util.Locale.setDefault(locale)
-        val config = android.content.res.Configuration(base.resources.configuration)
-        config.setLocale(locale)
-        config.setLayoutDirection(locale)
-        super.attachBaseContext(base.createConfigurationContext(config))
+        try {
+            val config = android.content.res.Configuration(base.resources.configuration)
+            config.setLocale(locale)
+            config.setLayoutDirection(locale)
+            super.attachBaseContext(base.createConfigurationContext(config))
+        } catch (t: Throwable) {
+            super.attachBaseContext(base)
+        }
     }
 
     override fun onCreate() {

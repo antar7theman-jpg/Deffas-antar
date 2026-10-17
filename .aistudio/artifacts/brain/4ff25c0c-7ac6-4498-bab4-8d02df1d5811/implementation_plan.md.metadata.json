@@ -1,6 +1,6 @@
 {
-  "summary": "خطة شاملة لإضافة ميزة تحديد سمك وعرض خط الطباعة الحرارية بثلاثة مستويات (عادي، متوسط، عريض داكن) في كل من نافذة معاينة الفاتورة وإعدادات الطابعة الحرارية، مع تطبيق التأثير المرئي على كامل الوصل وإبراز الإجماليات والترويسة.",
-  "updatedAt": "2026-10-15T16:39:07.188207381Z",
+  "summary": "Implementation plan for adding QR code scanning to the Invoices Archive screen to scan and preview invoices.",
+  "updatedAt": "2026-10-16T18:29:06.481526060Z",
   "requestFeedback": true,
   "userFacing": true
 }
